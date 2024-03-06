@@ -24,7 +24,7 @@ python main.py
 Follow the command-line prompts to interact with the program. You can view the status of all packages at specific times and the total mileage traveled by all trucks.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE.md file for details.
+// TODO: Choose license and include in repository
 
 ## Acknowledgments
 - Western Governors University for providing the project scenario and data files.
