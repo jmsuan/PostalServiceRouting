@@ -6,7 +6,7 @@ class PostalHashTable:
         key_hash = key.__hash__()
         bucket_num = key_hash % len(self._buckets)
         bucket = self._buckets[bucket_num]
-        # Enumerate to index sub item (collisions) if we are modifying an existing value.
+        # Enumerate to index sub item (collision) if we are modifying an existing value.
         for i, (k, v) in enumerate(bucket):
             if k == key:
                 bucket[i] = (key, value)
