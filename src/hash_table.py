@@ -1,10 +1,9 @@
-import datetime
 from package import Package
 
 
 class HashTable:
     def __init__(self, size: int):
-        self._buckets = [[]] * size
+        self._buckets = [[] for _ in range(size)]
 
     def insert(self, key, value=None):
         key_hash = key.__hash__()
@@ -15,7 +14,7 @@ class HashTable:
             if k == key:
                 bucket[i] = (key, value)
                 return
-        self._buckets[bucket_num].append((key, value))
+        bucket.append((key, value))
 
     def insert_package(self, pkg: Package) -> None:
         """Inserts a package with its associated details into the hash table."""
@@ -33,3 +32,12 @@ class HashTable:
     def lookup_package(self, package_id):
         """Returns the tuple with all the parcel's info."""
         return self.lookup(package_id)
+
+    def all_values(self) -> list:
+        """Returns a collision-separated list of all present values in the HashTable."""
+        all_items = []
+        for bucket in self._buckets:
+            if len(bucket) >= 1:  # Error?
+                for item in bucket:
+                    all_items.append(item[1])
+        return all_items

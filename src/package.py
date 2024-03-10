@@ -2,6 +2,7 @@ import datetime
 
 
 class Package:
+
     def __init__(
             self,
             package_id: int,
@@ -64,3 +65,44 @@ class Package:
 
     def get_status(self) -> str:
         return self._status
+
+    def __str__(self):
+        """Returns a string representation of the package."""
+        return (
+            f"[{self._package_id}, "
+            f"{self._address}, "
+            f"{self._deadline.strftime('%H:%M')}, "  # Format deadline for readability
+            f"{self._city}, "
+            f"{self._zip_code}, "
+            f"{self._weight} kg, "
+            f"{self._special_code}, "
+            f"{self._status}]"
+        )
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __len__(self):
+        """Returns the number of attributes the package object has."""
+        return len([attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")])
+
+    def __getitem__(self, key: int):
+        match key:
+            case 0:
+                return self._package_id
+            case 1:
+                return self._address
+            case 2:
+                return self._deadline.strftime('%H:%M')
+            case 3:
+                return self._city
+            case 4:
+                return self._zip_code
+            case 5:
+                return self._weight
+            case 6:
+                return self._special_code
+            case 7:
+                return self._status
+            case _:
+                return
