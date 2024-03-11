@@ -7,37 +7,39 @@ class Package:
             self,
             package_id: int,
             address: str,
-            deadline: datetime,
             city: str,
+            state: str,
             zip_code: str,
+            deadline: datetime,
             weight: float,
-            special_code: tuple[str, ...] = None,
+            special_code: list[str] = None,
             status: str = "IN HUB"
     ):
         """
         Creates a new package.
 
-        Args:
-            package_id (int): The unique identifier of the package.
-            address (str): The delivery address of the package.
-            deadline (datetime): The delivery deadline for the package.
-            city (str): The city associated with the delivery address.
-            zip_code (str): The zip code associated with the delivery address.
-            weight (float): The weight of the package in kilograms.
-            special_code (tuple[str, ...], optional): A tuple of special delivery
-                requirements or conditions, potentially containing multiple codes.
-                Available codes:
-                    - TRUCK[{list of truck IDs}]: specifies required truck numbers.
-                    - INVALID: Indicates invalid package information (must remain "IN HUB" until package is updated).
-                    - BUNDLE[{list of package IDs}]: Specifies joint delivery with other packages.
-                    - DELAY[{datetime}]: Specifies a delayed arrival time for the package.
-            status (str, optional): The current status of the package. Defaults to "IN HUB".
+        :param package_id: (int) The unique identifier of the package.
+        :param address: (str) The delivery address of the package.
+        :param city: (str) The city associated with the delivery address.
+        :param state: (str) The state associated with the delivery address.
+        :param zip_code: (str) The zip code associated with the delivery address.
+        :param deadline: (datetime) The delivery deadline for the package.
+        :param weight: (float) The weight of the package in kilograms.
+        :param special_code: (list[str], optional) A tuple of special delivery requirements or conditions,
+            potentially containing multiple codes.
+            Available codes:
+                - TRUCK[{list of truck IDs}]: specifies required truck numbers.
+                - INVALID: Indicates invalid package information (must remain in location until package is updated).
+                - BUNDLE[{list of package IDs}]: Specifies joint delivery with other packages.
+                - DELAY[{datetime}]: Specifies a delayed arrival time for the package.
+        :param status: (str, optional) The current status of the package. Defaults to "IN HUB".
         """
         self._package_id = package_id
         self._address = address
-        self._deadline = deadline
         self._city = city
+        self._state = state
         self._zip_code = zip_code
+        self._deadline = deadline
         self._weight = weight
         self._special_code = special_code
         self._status = status
@@ -60,7 +62,7 @@ class Package:
     def get_weight(self) -> float:
         return self._weight
 
-    def get_special_code(self) -> tuple[str, ...]:
+    def get_special_code(self) -> list[str, ...]:
         return self._special_code
 
     def get_status(self) -> str:
@@ -71,7 +73,7 @@ class Package:
         return (
             f"[{self._package_id}, "
             f"{self._address}, "
-            f"{self._deadline.strftime('%H:%M')}, "  # Format deadline for readability
+            f"{self._deadline.strftime("%I:%M %p")}, "  # Format deadline for readability
             f"{self._city}, "
             f"{self._zip_code}, "
             f"{self._weight} kg, "
@@ -93,16 +95,21 @@ class Package:
             case 1:
                 return self._address
             case 2:
-                return self._deadline.strftime('%H:%M')
-            case 3:
                 return self._city
+            case 3:
+                return self._state
             case 4:
                 return self._zip_code
             case 5:
-                return self._weight
+                if self._deadline.strftime("%I:%M:%S %p") == "11:59:59 PM":
+                    return "EOD"
+                else:
+                    return self._deadline.strftime("%I:%M %p")
             case 6:
-                return self._special_code
+                return f"{self._weight} kg"
             case 7:
+                return self._special_code
+            case 8:
                 return self._status
             case _:
                 return

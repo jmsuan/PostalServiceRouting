@@ -3,13 +3,21 @@ import datetime
 
 from hash_table import HashTable
 from package import Package
-from program_interface import ProgramInterface
+from pgm_interface import PgmInterface
 
+# Create custom HashTable
 package_table = HashTable(50)
 
-# Sample packages
-package = Package(123, "100 Main St", datetime.time(15, 3), "Anytown", "12345", 5.2)
-package2 = Package(234, "100 Main St", datetime.time(15, 3), "Anytown", "12345", 5.2)
-package_table.insert_package(package)
-package_table.insert_package(package2)
-ProgramInterface.print_all_packages(package_table.all_values())
+# Read CSV package data
+package_data = PgmInterface.read_csv("data/package_info.csv")
+
+# Convert CSV data to a list of Package objects
+raw_package_list = PgmInterface.list_to_package_list(package_data)
+
+# Add all Packages to custom HashTable
+for package in raw_package_list:
+    package_table.insert_package(package)
+
+# Print all packages in HashTable in a table format
+package_list = package_table.all_values()
+PgmInterface.print_all_packages(package_list)
