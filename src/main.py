@@ -1,8 +1,6 @@
 # Student ID: 001264312
-import datetime
 
 from hash_table import HashTable
-from package import Package
 from pgm_interface import PgmInterface
 
 # Create custom HashTable
