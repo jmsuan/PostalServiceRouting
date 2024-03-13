@@ -7,7 +7,7 @@ from pgm_interface import PgmInterface
 package_table = HashTable(50)
 
 # Read CSV package data
-package_data = PgmInterface.read_csv("data/package_info.csv")
+package_data = PgmInterface.read_csv("../data/package_info.csv")
 
 # Convert CSV data to a list of Package objects
 raw_package_list = PgmInterface.list_to_package_list(package_data)
