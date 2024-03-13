@@ -1,10 +1,10 @@
 # Student ID: 001264312
 
 from hash_table import HashTable
-from pgm_interface import PgmInterface
+from interface import Interface
 
 # Create custom HashTable
-package_table = HashTable(40)
+package_table = HashTable(50)
 
 # Read CSV package data
 raw_pkgs = PgmInterface.read_csv("../data/package_info.csv")
@@ -18,3 +18,7 @@ for pkg in pkg_list:
 
 # Print all packages in HashTable in a table format
 PgmInterface.print_package_table(package_table.all_values())
+
+raw_distances = Interface.read_csv("../data/distance_info.csv")
+
+Interface.fancy_table(raw_distances)

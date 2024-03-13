@@ -4,7 +4,7 @@ from datetime import datetime
 from package import Package
 
 
-class PgmInterface:
+class Interface:
     @staticmethod
     def read_csv(filepath: str) -> list[list]:
         file_rows = []
@@ -31,7 +31,7 @@ class PgmInterface:
         # Individually convert each row to a package and add to new list
         package_list = []
         for raw_package in package_data:
-            converted_package = PgmInterface.__list_to_package(raw_package)
+            converted_package = Interface.__list_to_package(raw_package)
             package_list.append(converted_package)
 
         return package_list
@@ -65,10 +65,10 @@ class PgmInterface:
             "Status:"
         )]
 
-        PgmInterface.__fancy_table(table, header)
+        Interface.fancy_table(table, header)
 
     @staticmethod
-    def __fancy_table(table: list[list], header: list[tuple[any, ...]]) -> None:
+    def fancy_table(table: list[list], header: list[tuple[any, ...]] = None) -> None:
         """
         Print a human-readable table from the given values.
 
@@ -76,19 +76,25 @@ class PgmInterface:
         :param header: The title of each column in order.
         :return: This function does not return a value.
         """
+        if header is None:
+            header = [table[0]]
+        else:
+            # Prepend table header strings so that the length is accounted for in formatting (not just data)
+            table = header + table
+
         # Ensure that the column number is as expected
         num_columns = len(header[0])
+        row_count = -1
         for row in table:
+            row_count += 1
             if len(row) != num_columns:
-                raise ValueError(f"Error in row length! Expecting {num_columns} columns and got {len(row)}.")
-
-        # Prepend table header strings so that the length is accounted for in formatting (not just data)
-        table = header + table
+                raise ValueError(f"Error in row length! Expecting {num_columns} "
+                                 f"columns and got {len(row)} on row {row_count}.")
 
         # Store maximum character length of each column (index) in a list
         len_columns = []
         for i in range(num_columns):
-            len_columns.append(PgmInterface.__table_index_max_length(table, i))
+            len_columns.append(Interface.__table_index_max_length(table, i))
 
         # Format top border with proper lengths
         print("┌─", end="")
@@ -104,7 +110,7 @@ class PgmInterface:
         for row in table:
             print("│", end="")
             for i in range(num_columns):
-                print(f" {row[i]} ", end="")
+                print(f" {str(row[i]).replace("\n", " ")} ", end="")
                 spaces_to_add = len_columns[i] - len(str(row[i]))
                 for _ in range(spaces_to_add):
                     print(" ", end="")
@@ -234,7 +240,7 @@ class PgmInterface:
         if package_info[7] == "":
             special_code = ""
         else:
-            special_code = PgmInterface.__special_notes_to_code(package_info[7])
+            special_code = Interface.__special_notes_to_code(package_info[7])
 
         status = "NEW"
 
