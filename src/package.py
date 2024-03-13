@@ -6,7 +6,7 @@ class Package:
     def __init__(
             self,
             package_id: int,
-            address: str,
+            address: str,  # TODO: Convert address details to destination: Location class
             city: str,
             state: str,
             zip_code: str,
