@@ -37,7 +37,14 @@ class HashTable:
         """Returns a collision-separated list of all present values in the HashTable."""
         all_items = []
         for bucket in self._buckets:
-            if len(bucket) >= 1:  # Error?
+            if len(bucket) >= 1:
                 for item in bucket:
                     all_items.append(item[1])
         return all_items
+
+    def values(self, keys: list) -> list:
+        """Returns a list of values that were found from each key given."""
+        values = []
+        for key in keys:
+            values.append(self.lookup(key))
+        return values
