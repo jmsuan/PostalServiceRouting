@@ -4,18 +4,17 @@ from hash_table import HashTable
 from pgm_interface import PgmInterface
 
 # Create custom HashTable
-package_table = HashTable(50)
+package_table = HashTable(40)
 
 # Read CSV package data
-package_data = PgmInterface.read_csv("../data/package_info.csv")
+raw_pkgs = PgmInterface.read_csv("../data/package_info.csv")
 
 # Convert CSV data to a list of Package objects
-raw_package_list = PgmInterface.list_to_package_list(package_data)
+pkg_list = PgmInterface.list_to_package_list(raw_pkgs)
 
 # Add all Packages to custom HashTable
-for package in raw_package_list:
-    package_table.insert_package(package)
+for pkg in pkg_list:
+    package_table.insert_package(pkg)
 
 # Print all packages in HashTable in a table format
-package_list = package_table.all_values()
-PgmInterface.print_all_packages(package_list)
+PgmInterface.print_package_table(package_table.all_values())

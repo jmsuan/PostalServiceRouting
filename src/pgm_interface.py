@@ -6,6 +6,122 @@ from package import Package
 
 class PgmInterface:
     @staticmethod
+    def read_csv(filepath: str) -> list[list]:
+        file_rows = []
+        with open(filepath, newline='') as csvfile:
+            file_reader = csv.reader(csvfile)
+            for row in file_reader:
+                file_rows.append(row)
+            return file_rows
+
+    @staticmethod
+    def list_to_package_list(package_data: list[list[str]]) -> list[Package]:
+        """
+        Converts a collection of raw package data into a list of Package objects.
+
+        :param package_data: Raw package data with multiple lists containing
+            all required attributes of the Package class.
+        :return: A list of Packages that were created from the raw data.
+        """
+        # Remove header row if present
+        if package_data[0] == ["PackageID", "Address", "City", "State", "Zip",
+                               "DeliveryDeadline", "WeightKILO", "SpecialNotes"]:
+            package_data = package_data[1:]
+
+        # Individually convert each row to a package and add to new list
+        package_list = []
+        for raw_package in package_data:
+            converted_package = PgmInterface.__list_to_package(raw_package)
+            package_list.append(converted_package)
+
+        return package_list
+
+    @staticmethod
+    def print_package_table(table: list[list]) -> None:
+        """
+        Print the given package table in a human-readable format.
+
+        :param table: A list with lists inside of it. Expects values in the order of
+            "Pkg ID:",
+            "Address:",
+            "City:",
+            "State:",
+            "Zip Code:",
+            "Deadline:",
+            "Weight:",
+            "Special Code:",
+            "Status:"
+        :return: This function does not return a value.
+        """
+        header = [(
+            "Pkg ID:",
+            "Address:",
+            "City:",
+            "State:",
+            "Zip Code:",
+            "Deadline:",
+            "Weight:",
+            "Special Code:",
+            "Status:"
+        )]
+
+        PgmInterface.__fancy_table(table, header)
+
+    @staticmethod
+    def __fancy_table(table: list[list], header: list[tuple[any, ...]]) -> None:
+        """
+        Print a human-readable table from the given values.
+
+        :param table: A list with lists inside of it.
+        :param header: The title of each column in order.
+        :return: This function does not return a value.
+        """
+        # Ensure that the column number is as expected
+        num_columns = len(header[0])
+        for row in table:
+            if len(row) != num_columns:
+                raise ValueError(f"Error in row length! Expecting {num_columns} columns and got {len(row)}.")
+
+        # Prepend table header strings so that the length is accounted for in formatting (not just data)
+        table = header + table
+
+        # Store maximum character length of each column (index) in a list
+        len_columns = []
+        for i in range(num_columns):
+            len_columns.append(PgmInterface.__table_index_max_length(table, i))
+
+        # Format top border with proper lengths
+        print("┌─", end="")
+        for i in range(num_columns):
+            for _ in range(len_columns[i]):  # Range is character length of each column
+                print("─", end="")
+            if i == num_columns - 1:
+                print("─┐")
+                continue
+            print("─┬─", end="")
+
+        # Print data rows (including header)
+        for row in table:
+            print("│", end="")
+            for i in range(num_columns):
+                print(f" {row[i]} ", end="")
+                spaces_to_add = len_columns[i] - len(str(row[i]))
+                for _ in range(spaces_to_add):
+                    print(" ", end="")
+                print("│", end="")
+            print("")
+
+        # Print bottom border
+        print("└─", end="")
+        for i in range(num_columns):
+            for _ in range(len_columns[i]):  # Range is character length of each column
+                print("─", end="")
+            if i == num_columns - 1:
+                print("─┘")
+                continue
+            print("─┴─", end="")
+
+    @staticmethod
     def __special_notes_to_code(special_notes: str) -> list[str]:
         """
         Converts a "Special Notes" string from the package_info data imported into a format this program expects and
@@ -136,36 +252,6 @@ class PgmInterface:
 
         return created_package
 
-    @staticmethod
-    def list_to_package_list(package_data: list[list[str]]) -> list[Package]:
-        """
-        Converts a collection of raw package data into a list of Package objects.
-
-        :param package_data: Raw package data with multiple lists containing
-            all required attributes of the Package class.
-        :return: A list of Packages that were created from the raw data.
-        """
-        # Remove header row if present
-        if package_data[0] == ["PackageID", "Address", "City", "State", "Zip",
-                               "DeliveryDeadline", "WeightKILO", "SpecialNotes"]:
-            package_data = package_data[1:]
-
-        # Individually convert each row to a package and add to new list
-        package_list = []
-        for raw_package in package_data:
-            converted_package = PgmInterface.__list_to_package(raw_package)
-            package_list.append(converted_package)
-
-        return package_list
-
-    @staticmethod
-    def read_csv(filepath: str) -> list[list]:
-        file_rows = []
-        with open(filepath, newline='') as csvfile:
-            file_reader = csv.reader(csvfile)
-            for row in file_reader:
-                file_rows.append(row)
-            return file_rows
 
     @staticmethod
     def __table_index_max_length(table: list[list], index: int) -> int:
@@ -177,65 +263,3 @@ class PgmInterface:
                 max_length = ix_item_length
         return max_length
 
-    @staticmethod
-    def print_all_packages(table: list[list]) -> None:
-        """
-
-        :param table: A list with lists inside of it. This method expects 8 columns.
-        :return: This function does not return a value.
-        """
-        # Ensure that the expected column number is as expected
-        num_columns = 9
-        for row in table:
-            if len(row) != num_columns:
-                raise ValueError(f"Error in row length! Expecting {num_columns} columns and got {len(row)}")
-
-        # Prepend table header strings so that the length is accounted for in formatting (not just data)
-        headers = [(
-            "Pkg ID:",
-            "Address:",
-            "City:",
-            "State:",
-            "Zip Code:",
-            "Deadline:",
-            "Weight:",
-            "Special Code:",
-            "Status:"
-        )]
-        table = headers + table
-
-        # Store maximum character length of each column (index) in a list
-        len_columns = []
-        for i in range(len(table[0])):
-            len_columns.append(PgmInterface.__table_index_max_length(table, i))
-
-        # Format top border with proper lengths
-        print("┌─", end="")
-        for i in range(num_columns):
-            for _ in range(len_columns[i]):  # Range is character length of each column
-                print("─", end="")
-            if i == num_columns - 1:
-                print("─┐")
-                continue
-            print("─┬─", end="")
-
-        # Print data rows (including header)
-        for row in table:
-            print("│", end="")
-            for i in range(num_columns):
-                print(f" {row[i]} ", end="")
-                spaces_to_add = len_columns[i] - len(str(row[i]))
-                for _ in range(spaces_to_add):
-                    print(" ", end="")
-                print("│", end="")
-            print("")
-
-        # Print bottom border
-        print("└─", end="")
-        for i in range(num_columns):
-            for _ in range(len_columns[i]):  # Range is character length of each column
-                print("─", end="")
-            if i == num_columns - 1:
-                print("─┘")
-                continue
-            print("─┴─", end="")
