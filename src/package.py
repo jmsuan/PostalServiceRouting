@@ -45,6 +45,9 @@ class Package:
     def get_package_id(self) -> int:
         return self._package_id
 
+    def get_destination(self) -> Location:
+        return self._destination
+
     def get_address(self) -> str:
         return self._destination.get_address()
 
