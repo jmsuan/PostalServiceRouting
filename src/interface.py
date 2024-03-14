@@ -1,10 +1,20 @@
 import csv
 from datetime import datetime
-
 from package import Package
+from location import Location
 
 
 class Interface:
+    _hub_location = None
+
+    @staticmethod
+    def set_hub(hub_location: Location):
+        Interface._hub_location = hub_location
+
+    @staticmethod
+    def get_hub() -> Location:
+        return Interface._hub_location
+
     @staticmethod
     def read_csv(filepath: str) -> list[list]:
         file_rows = []
@@ -258,7 +268,6 @@ class Interface:
 
         return created_package
 
-
     @staticmethod
     def __table_index_max_length(table: list[list], index: int) -> int:
         """Loops through all items in a column and returns the character length of the longest item."""
@@ -268,4 +277,3 @@ class Interface:
             if ix_item_length > max_length:
                 max_length = ix_item_length
         return max_length
-
