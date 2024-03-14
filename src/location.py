@@ -3,16 +3,17 @@ from hash_table import HashTable
 
 
 class Location:
+    # Stores all Location objects that are created
     _all_locations = []
 
     def __init__(self, name: str, street_address: str, city: str, state: str, zip_code: str):
         """Instantiates a location that can store driving distances from other locations."""
-        self._name = name
-        self._address = street_address.strip()
-        self._city = city
-        self._state = state
-        self._zip = zip_code
-        self._distance_table = HashTable(50)
+        self._name = name.strip().capitalize()
+        self._address = street_address.strip().capitalize()
+        self._city = city.strip().capitalize()
+        self._state = state.strip().upper()
+        self._zip = zip_code.strip()
+        self._distance_table = HashTable(50)  # Size should (ideally) be at least 1.3x the max num of distances
         Location._all_locations.append(self)
 
     def add_distance(self, location: Location, miles_to_drive: float):
@@ -44,18 +45,26 @@ class Location:
 
         # Search all stored locations (every location that's instantiated should be stored)
         for location in Location._all_locations:
-            if locations_found > 1:
-                raise AttributeError("Multiple conflicting locations with same info!")
 
             # Check address first, if it's not a match, check the next stored location
-            if location.get_address() == street_address.strip():
+            if location.get_address() != street_address.strip().capitalize():
+                continue  # Street address doesn't match. Check next stored Location.
+            if location.get_city() != city.strip().capitalize():
+                continue  # Address matches but not city.
+            if location.get_state() != state.upper().strip():
+                continue  # Address matches but not state.
+            if location.get_zip() != zip_code.strip():
+                continue  # Address matches but not zip.
+
+            # This Location fully matches a stored one
+            if locations_found < 1:
                 locations_found += 1
                 found_location = location
             else:
-                continue  # TODO: finish location search logic
-
-            if location.get_city() == city.strip():
-                pass  # TODO: finish location search logic
+                raise ValueError(f"Multiple conflicting locations with same info. Make sure the "
+                                 f"Location is only added once.\n"
+                                 f"Location 1: {found_location}\n"
+                                 f"Location 2: {location}")
 
         if found_location is not None:
             return found_location
