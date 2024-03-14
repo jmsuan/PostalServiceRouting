@@ -1,5 +1,7 @@
 from driver import Driver
 from package import Package
+from location import Location
+from interface import Interface
 
 
 class Truck:
@@ -16,6 +18,8 @@ class Truck:
         self._driver = driver
         self._packages = []
         self._mileage = 0.0
+        self._last_location = Interface.get_hub()
+        self._route = []
 
     def load(self, package: Package):
         self._packages.append(package)
@@ -28,3 +32,9 @@ class Truck:
 
     def set_driver(self, new_driver: Driver):
         self._driver = new_driver
+
+    def add_to_route(self, destination: Location):
+        self._route.append(destination)
+
+    def reset_route(self):
+        self._route = []
