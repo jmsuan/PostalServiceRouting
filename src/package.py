@@ -62,7 +62,7 @@ class Package:
     def get_weight(self) -> float:
         return self._weight
 
-    def get_special_code(self) -> list[str, ...]:
+    def get_special_code(self) -> list[str]:
         return self._special_code
 
     def get_status(self) -> str:
