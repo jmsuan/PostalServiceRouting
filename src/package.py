@@ -1,4 +1,5 @@
 import datetime
+from location import Location
 
 
 class Package:
@@ -6,7 +7,7 @@ class Package:
     def __init__(
             self,
             package_id: int,
-            address: str,  # TODO: Convert address details to destination: Location class
+            address: str,
             city: str,
             state: str,
             zip_code: str,
@@ -35,10 +36,7 @@ class Package:
         :param status: (str, optional) The current status of the package. Defaults to "IN HUB".
         """
         self._package_id = package_id
-        self._address = address
-        self._city = city
-        self._state = state
-        self._zip_code = zip_code
+        self._destination = Location.get_location(address, city, state, zip_code)
         self._deadline = deadline
         self._weight = weight
         self._special_code = special_code
@@ -48,16 +46,16 @@ class Package:
         return self._package_id
 
     def get_address(self) -> str:
-        return self._address
+        return self._destination.get_address()
 
     def get_deadline(self) -> datetime:
         return self._deadline
 
     def get_city(self) -> str:
-        return self._city
+        return self._destination.get_city()
 
-    def get_zip_code(self) -> str:
-        return self._zip_code
+    def get_zip(self) -> str:
+        return self._destination.get_zip()
 
     def get_weight(self) -> float:
         return self._weight
@@ -72,10 +70,10 @@ class Package:
         """Returns a string representation of the package."""
         return (
             f"[{self._package_id}, "
-            f"{self._address}, "
+            f"{self._destination.get_address()}, "
+            f"{self._destination.get_state()}, "
+            f"{self._destination.get_zip()}, "
             f"{self._deadline.strftime("%I:%M %p")}, "  # Format deadline for readability
-            f"{self._city}, "
-            f"{self._zip_code}, "
             f"{self._weight} kg, "
             f"{self._special_code}, "
             f"{self._status}]"
@@ -93,13 +91,13 @@ class Package:
             case 0:
                 return self._package_id
             case 1:
-                return self._address
+                return self._destination.get_address()
             case 2:
-                return self._city
+                return self._destination.get_city()
             case 3:
-                return self._state
+                return self._destination.get_state()
             case 4:
-                return self._zip_code
+                return self._destination.get_zip()
             case 5:
                 if self._deadline.strftime("%I:%M:%S %p") == "11:59:59 PM":
                     return "EOD"
