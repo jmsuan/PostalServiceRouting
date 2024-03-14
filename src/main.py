@@ -12,6 +12,15 @@ Ideally, the program flows as follows:
 from hash_table import HashTable
 from interface import Interface
 
+# Import location info
+raw_locations = Interface.read_csv("../data/distance_info.csv")
+location_list = Interface.list_to_location_list(raw_locations)
+
+# Print all distances in a table format
+print("Distance Table:")
+Interface.fancy_table(Interface.read_csv("../data/distance_info.csv"))
+
+'''
 # Create custom HashTable object
 pkg_table = HashTable(50)
 
@@ -30,7 +39,4 @@ for pkg in pkg_list:
 # Print all packages in HashTable in a table format
 print("Package Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
-
-# Print all distances in a table format
-print("Distance Table:")
-Interface.fancy_table(Interface.read_csv("../data/distance_info.csv"))
+'''

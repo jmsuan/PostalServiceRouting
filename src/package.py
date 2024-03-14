@@ -36,7 +36,10 @@ class Package:
         :param status: (str, optional) The current status of the package. Defaults to "IN HUB".
         """
         self._package_id = package_id
-        self._destination = Location.get_location(address, city, state, zip_code)
+        self._destination = Location.get_location(address, zip_code)
+        self.__null = None  # This is a quick fix to the object __len__ method. _destination accounts for two values.
+        self._city = city
+        self._state = state
         self._deadline = deadline
         self._weight = weight
         self._special_code = special_code
@@ -55,7 +58,10 @@ class Package:
         return self._deadline
 
     def get_city(self) -> str:
-        return self._destination.get_city()
+        return self._city
+
+    def get_state(self) -> str:
+        return self._state
 
     def get_zip(self) -> str:
         return self._destination.get_zip()
@@ -70,11 +76,12 @@ class Package:
         return self._status
 
     def __str__(self):
-        """Returns a string representation of the package."""
+        """Returns a string representation of the Package."""
         return (
             f"[{self._package_id}, "
             f"{self._destination.get_address()}, "
-            f"{self._destination.get_state()}, "
+            f"{self.get_city()}, "
+            f"{self.get_state()}, "
             f"{self._destination.get_zip()}, "
             f"{self._deadline.strftime("%I:%M %p")}, "  # Format deadline for readability
             f"{self._weight} kg, "
@@ -86,21 +93,21 @@ class Package:
         return self.__str__()
 
     def __len__(self):
-        """Returns the number of attributes the package object has."""
+        """Returns the number of attributes the Package object has."""
         return len([attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")])
 
     def __getitem__(self, key: int):
         match key:
             case 0:
-                return self._package_id
+                return self.get_package_id()
             case 1:
-                return self._destination.get_address()
+                return self.get_address()
             case 2:
-                return self._destination.get_city()
+                return self.get_city()
             case 3:
-                return self._destination.get_state()
+                return self.get_state()
             case 4:
-                return self._destination.get_zip()
+                return self.get_zip()
             case 5:
                 if self._deadline.strftime("%I:%M:%S %p") == "11:59:59 PM":
                     return "EOD"
@@ -109,8 +116,8 @@ class Package:
             case 6:
                 return f"{self._weight} kg"
             case 7:
-                return self._special_code
+                return self.get_special_code()
             case 8:
-                return self._status
+                return self.get_status()
             case _:
                 return

@@ -5,18 +5,17 @@ class Location:
     # Stores all Location objects that are created
     _all_locations = []
 
-    def __init__(self, name: str, street_address: str, city: str, state: str, zip_code: str):
+    def __init__(self, name: str, street_address: str, zip_code: str):
         """Instantiates a location that can store driving distances from other locations."""
-        self._name = name.strip().capitalize()
-        self._address = street_address.strip().capitalize()
-        self._city = city.strip().capitalize()
-        self._state = state.strip().upper()
+        self._name = name.strip().title()
+        self._address = street_address.replace("Sta ", "Station ").strip().title()
         self._zip = zip_code.strip()
         self._distance_table = {}
         Location._all_locations.append(self)
 
     def add_distance(self, location: Location, miles_to_drive: float):
         self._distance_table += {location, miles_to_drive}
+        location._distance_table += {self, miles_to_drive}  # Distance assumed to be same both ways
 
     def distance_from(self, location: Location) -> float:
         return self._distance_table.get(location)
@@ -24,20 +23,22 @@ class Location:
     def get_address(self) -> str:
         return self._address
 
-    def get_city(self) -> str:
-        return self._city
-
-    def get_state(self) -> str:
-        return self._state
-
     def get_zip(self) -> str:
         return self._zip
 
     def get_name(self) -> str:
         return self._name
 
+    def __str__(self):
+        return (f"[{self.get_name()}, "
+                f"{self.get_address()}, "
+                f"({self.get_zip()})]")
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
-    def get_location(street_address: str, city: str, state: str, zip_code: str):
+    def get_location(street_address: str, zip_code: str):
         # Initialize search variables
         locations_found = 0
         found_location = None
@@ -46,12 +47,8 @@ class Location:
         for location in Location._all_locations:
 
             # Check address first, if it's not a match, check the next stored location
-            if location.get_address() != street_address.strip().capitalize():
+            if location.get_address() != street_address.strip().title():
                 continue  # Street address doesn't match. Check next stored Location.
-            if location.get_city() != city.strip().capitalize():
-                continue  # Address matches but not city.
-            if location.get_state() != state.upper().strip():
-                continue  # Address matches but not state.
             if location.get_zip() != zip_code.strip():
                 continue  # Address matches but not zip.
 
@@ -67,6 +64,6 @@ class Location:
 
         if found_location is not None:
             return found_location
-
-        raise ValueError("Location with specified attributes not found! Please ensure that the Location's "
-                         "full details are known and imported before attempting to find the Object.")
+        else:
+            raise ValueError("Location with specified attributes not found! Please ensure that the Location's "
+                             "full details are known and imported before attempting to find the Object.")

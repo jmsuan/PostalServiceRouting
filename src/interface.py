@@ -25,6 +25,58 @@ class Interface:
             return file_rows
 
     @staticmethod
+    def list_to_location_list(location_data: list[list[str]]) -> list[Location]:
+        """
+        Converts a collection of raw location data into a list of Location objects. Also adds all location distances
+        from each other.
+
+        :param location_data: Raw location data with multiple lists containing
+            all required attributes of the Location class.
+        :return: A list of Packages that were created from the raw data.
+        """
+        location_names = []
+        location_addresses = []
+        location_zips = []
+
+        # Parse location info
+        for row in location_data[1:]:
+            # Get name and address from first column
+            try:
+                name, address, _ = str.split(row[0], "\n", 2)
+            except ValueError:  # The csv table is inconsistent. Sometimes listing city/state, and sometimes not.
+                name, address = str.split(row[0], "\n", 1)
+            location_names.append(name.strip())
+            location_addresses.append(
+                address.strip().replace(",", ""))  # Account for commas that might be added as part of the address
+
+            # Get zip code from second column (except for on the HUB row)
+            if row[1].strip() == "HUB":
+                location_zips.append(row[0].strip()[-5:])
+            else:
+                location_zips.append(row[1].strip()[-6:-1])
+
+        # Ensure everything is here
+        if len(location_names) != len(location_addresses) or len(location_addresses) != len(location_zips):
+            raise ValueError(f"Couldn't find names, addresses, or zips for all locations! There are:\n"
+                             f"- {len(location_names)} Location names imported.\n"
+                             f"- {len(location_addresses)} Location addresses imported.\n"
+                             f"- {len(location_zips)} Location zip codes imported.")
+
+        # Create Location objects and add to list
+        location_objects = []
+        num_columns = len(location_names)
+        for i in range(num_columns):
+            location_objects.append(Location(
+                location_names[i],
+                location_addresses[i],
+                location_zips[i]
+            ))
+
+        # Add distances from each other
+
+        return location_objects
+
+    @staticmethod
     def list_to_package_list(package_data: list[list[str]]) -> list[Package]:
         """
         Converts a collection of raw package data into a list of Package objects.
