@@ -1,5 +1,4 @@
 from __future__ import annotations
-from hash_table import HashTable
 
 
 class Location:
@@ -13,14 +12,14 @@ class Location:
         self._city = city.strip().capitalize()
         self._state = state.strip().upper()
         self._zip = zip_code.strip()
-        self._distance_table = HashTable(50)  # Size should (ideally) be at least 1.3x the max num of distances
+        self._distance_table = {}
         Location._all_locations.append(self)
 
     def add_distance(self, location: Location, miles_to_drive: float):
-        self._distance_table.insert(location, miles_to_drive)
+        self._distance_table += {location, miles_to_drive}
 
     def distance_from(self, location: Location) -> float:
-        return self._distance_table.lookup(location)
+        return self._distance_table.get(location)
 
     def get_address(self) -> str:
         return self._address
@@ -38,7 +37,7 @@ class Location:
         return self._name
 
     @staticmethod
-    def get_location(street_address: str, city: str, state: str, zip_code: str) -> Location:
+    def get_location(street_address: str, city: str, state: str, zip_code: str):
         # Initialize search variables
         locations_found = 0
         found_location = None
