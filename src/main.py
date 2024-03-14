@@ -1,4 +1,13 @@
 # Student ID: 001264312
+"""
+WIP NOTES:
+Ideally, the program flows as follows:
+- Import locations and their distances from each other
+- Import packages and associate with locations
+- (Calculate priority of packages?)
+- Add packages to trucks based on (package priority? use time variable to track current time?)
+- Packages should be updated by truck action methods (load, drive, deliver(maybe a Driver method?))
+"""
 
 from hash_table import HashTable
 from interface import Interface
