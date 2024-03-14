@@ -14,8 +14,8 @@ class Location:
         Location._all_locations.append(self)
 
     def add_distance(self, location: Location, miles_to_drive: float):
-        self._distance_table += {location, miles_to_drive}
-        location._distance_table += {self, miles_to_drive}  # Distance assumed to be same both ways
+        self._distance_table[location] = miles_to_drive
+        location._distance_table[self] = miles_to_drive  # Distance assumed to be same both ways
 
     def distance_from(self, location: Location) -> float:
         return self._distance_table.get(location)
@@ -38,7 +38,7 @@ class Location:
         return self.__str__()
 
     @staticmethod
-    def get_location(street_address: str, zip_code: str):
+    def get_location_by_address(street_address: str, zip_code: str) -> Location:
         # Initialize search variables
         locations_found = 0
         found_location = None
@@ -66,4 +66,33 @@ class Location:
             return found_location
         else:
             raise ValueError("Location with specified attributes not found! Please ensure that the Location's "
+                             "full details are known and imported before attempting to find the Object.")
+
+    @staticmethod
+    def get_location_by_name(location_name: str) -> Location:
+        # Initialize search variables
+        locations_found = 0
+        found_location = None
+
+        # Search all stored locations (every location that's instantiated should be stored)
+        for location in Location._all_locations:
+
+            # Check name first, if it's not a match, check the next location.
+            if location.get_name() != location_name.strip().title():
+                continue
+
+            # This Location matches a stored one
+            if locations_found < 1:
+                locations_found += 1
+                found_location = location
+            else:
+                raise ValueError(f"Multiple conflicting locations with same info. Make sure the "
+                                 f"Location is only added once.\n"
+                                 f"Location 1: {found_location}\n"
+                                 f"Location 2: {location}")
+
+        if found_location is not None:
+            return found_location
+        else:
+            raise ValueError("Location with specified name not found! Please ensure that the Location's "
                              "full details are known and imported before attempting to find the Object.")

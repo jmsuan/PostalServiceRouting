@@ -36,7 +36,7 @@ class Package:
         :param status: (str, optional) The current status of the package. Defaults to "IN HUB".
         """
         self._package_id = package_id
-        self._destination = Location.get_location(address, zip_code)
+        self._destination = Location.get_location_by_address(address, zip_code)
         self.__null = None  # This is a quick fix to the object __len__ method. _destination accounts for two values.
         self._city = city
         self._state = state

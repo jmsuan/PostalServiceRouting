@@ -64,15 +64,30 @@ class Interface:
 
         # Create Location objects and add to list
         location_objects = []
-        num_columns = len(location_names)
-        for i in range(num_columns):
+        num_locations = len(location_names)
+        for i in range(num_locations):
             location_objects.append(Location(
                 location_names[i],
                 location_addresses[i],
                 location_zips[i]
             ))
 
-        # Add distances from each other
+        # Add distances for each location.
+        #   The csv file is formatted such that the second row and the third column correspond with the first distance
+        #   entry. It then continues such that the last row and last column correspond with the last distance entry.
+        #   We already have an ordered list of location names, addresses, and zips that we can use here.
+        start_row_ix = 1  # Second row
+        start_col_ix = 2  # Third column
+        # For each location
+        for loc_ix in range(num_locations):
+            current_location = Location.get_location_by_name(location_names[loc_ix])
+
+            # Set distance for each location beneath the current loc_ix row.
+            for row_offset in range(num_locations - loc_ix):
+                row_target = start_row_ix + loc_ix + row_offset
+                col_target = start_col_ix + loc_ix
+                distant_location = Location.get_location_by_name(location_names[loc_ix + row_offset])
+                current_location.add_distance(distant_location, float(location_data[row_target][col_target].strip()))
 
         return location_objects
 
