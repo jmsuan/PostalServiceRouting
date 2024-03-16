@@ -18,6 +18,10 @@ class Location:
         location._distance_table[self] = miles_to_drive  # Distance assumed to be same both ways
 
     def distance_from(self, location: Location) -> float:
+        """
+        :param location: Another location that's distant from the current one.
+        :return: The distance in miles between the two Locations.
+        """
         return self._distance_table.get(location)
 
     def get_address(self) -> str:
