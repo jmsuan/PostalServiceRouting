@@ -1,5 +1,6 @@
 from package import Package
 from location import Location
+from route_set import RouteSet
 
 
 class Scheduler:
@@ -24,11 +25,24 @@ class Scheduler:
       specified by the route).
 
     Next, the Scheduler generates "priorities" for each package. This takes into account the following characteristics:
+    -
+    - TODO: Add other characteristics
+    -
     - How far it is from the HUB. (This is to prioritize delivering the furthest packages first within a route, which is
       beneficial to the total mileage if the Truck cannot deliver to all the locations on a route at once.)
     """
     @staticmethod
-    def generate_routes(hub: Location, location_list: list[Location], ):
+    def generate_routes(hub: Location, location_list: list[Location]):
+        # Change as desired to optimize mileage based on num of Trucks and Locations
+        number_of_routes = 5
+
+        # For simplicity, we will make a list that doesn't have the HUB.
+        if hub in location_list:
+            destinations = location_list.remove(hub)
+        else:
+            destinations = location_list
+
+        #
         pass
 
     @staticmethod
@@ -48,3 +62,7 @@ class Scheduler:
         :return:
         """
         pass  # TODO: Implement
+
+    @staticmethod
+    def __validate_routes(route_set: RouteSet, location_list: list[Location]) -> bool:
+        pass
