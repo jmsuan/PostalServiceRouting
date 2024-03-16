@@ -1,5 +1,6 @@
 from package import Package
 
+
 class Scheduler:
     @staticmethod
     def prioritize_packages(package_list: list[Package]) -> list[int]:
