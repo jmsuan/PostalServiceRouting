@@ -109,8 +109,11 @@ class RouteSet:
         :param hub_location: The starting and ending point of all the routes.
         :return: The average route-petal width of all the given routes in the set.
         """
-        avg_deviance = 0.0
-        # TODO: Implement
+        deviance_list = []
+        for route in self.route_set:
+            deviance = RouteSet.__get_route_deviance(route, hub_location)
+            deviance_list.append(deviance)
+        return sum(deviance_list) / len(deviance_list)
 
     def get_max_locations_per_mile(self) -> float:
         pass
