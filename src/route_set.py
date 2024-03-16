@@ -19,7 +19,7 @@ class RouteSet:
 
         :return: A new RouteSet that can be considered a child of this single parent RouteSet.
         """
-        pass
+        pass  # TODO: implement
 
     def offspring(self, other_parent: RouteSet) -> RouteSet:
         """
@@ -27,7 +27,7 @@ class RouteSet:
         :param other_parent:
         :return:
         """
-        pass
+        pass  # TODO: implement
 
     def get_total_distance(self) -> float:
         """
@@ -69,22 +69,7 @@ class RouteSet:
         for route in self.route_set:
             lengths.append(len(route))
 
-        # Ensure there's at least two routes in the set, otherwise return the only length
-        num_lengths = len(lengths)
-        if num_lengths < 2:
-            return lengths[0]
-
-        # Find the median length of all routes
-        lengths.sort()
-        middle_ix = (num_lengths - 1) // 2  # Subtract one from length to get the maximum index (ix)
-        if num_lengths % 2 == 0:
-            # Number of routes is even
-            median_length = lengths[middle_ix]
-        else:
-            # Number of routes is odd
-            median_length = lengths[middle_ix] + lengths[middle_ix + 1] / 2.0
-
-        return median_length
+        return RouteSet.__calculate_median(lengths)
 
     def get_max_deviance(self, hub_location: Location) -> float:
         """
@@ -116,13 +101,44 @@ class RouteSet:
         return sum(deviance_list) / len(deviance_list)
 
     def get_max_locations_per_mile(self) -> float:
-        pass
+        """
+        Calculates the distance-efficiency of the most distance-efficient route in the RouteSet.
+        :return: The Location density of the route (num_locations / route_distance).
+        """
+        max_density = 0.0
+        for route in self.route_set:
+            location_density = len(route) / RouteSet.__get_route_distance(route)
+            if location_density > max_density:
+                max_density = location_density
+        return max_density
 
     def get_med_locations_per_mile(self) -> float:
-        pass
+        """
+        Calculates the median distance-efficiency of the all routes in the RouteSet.
+        :return: The median Location density of the routes (num_locations / route_distance).
+        """
+        density_list = []
+        for route in self.route_set:
+            location_density = len(route) / RouteSet.__get_route_distance(route)
+            density_list.append(location_density)
+
+        return RouteSet.__calculate_median(density_list)
+
+    def get_avg_locations_per_mile(self) -> float:
+        """
+        Calculates the average distance-efficiency of the all routes in the RouteSet.
+        :return: The average Location density of the routes (num_locations / route_distance).
+        """
+        density_list = []
+        for route in self.route_set:
+            location_density = len(route) / RouteSet.__get_route_distance(route)
+            density_list.append(location_density)
+
+        return sum(density_list) / len(density_list)
 
     @staticmethod
     def __get_route_deviance(route: list[Location], hub_location: Location) -> float:
+        """Calculates the deviance from the theoretically ideal route in miles."""
         # Ensure that each route starts and ends with the hub Location.
         if route[0] != hub_location or route[-1] != hub_location:
             raise ValueError(f"One or more routes do not start/end with the HUB location!\n"
@@ -145,6 +161,7 @@ class RouteSet:
 
     @staticmethod
     def __get_route_distance(route: list[Location]) -> float:
+        """Calculates the total distance of the route in miles."""
         distance = 0.0
         prev_location = None
         for location in route:
@@ -153,3 +170,23 @@ class RouteSet:
             else:
                 distance += location.distance_from(prev_location)
         return distance
+
+    @staticmethod
+    def __calculate_median(float_list: list[float]) -> float:
+        """Calculates the median of the given list of floats."""
+        # Ensure there's at least two routes in the set, otherwise return the only value
+        list_len = len(float_list)
+        if list_len < 2:
+            return float_list[0]
+
+        # Calculate the median
+        float_list.sort()
+        middle_ix = (list_len - 1) // 2  # Subtract one from length to get the maximum index (ix)
+        if list_len % 2 == 0:
+            # Number of routes is even
+            median_length = float_list[middle_ix]
+        else:
+            # Number of routes is odd
+            median_length = float_list[middle_ix] + float_list[middle_ix + 1] / 2.0
+
+        return median_length
