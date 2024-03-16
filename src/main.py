@@ -4,25 +4,6 @@ from hash_table import HashTable
 from interface import Interface
 from location import Location
 
-# Print WIP Notes TODO: Remove WIP notes
-print("WIP NOTES:\n"
-      "Ideally, the program flows as follows:\n"
-      "- Import locations and their distances from each other\n"
-      "- Import packages and associate with locations\n"
-      "- (Calculate priority of packages?)\n"
-      "        Assign package priorities based on multiple scoring factors:\n"
-      "        distance to hub\n"
-      "        avg distance from other destinations(?)\n"
-      "        special priority\n"
-      "        deadline\n"
-      "        HOW MANY other high priority packages are nearby that facilitate ideal “elevator” routes. "
-      "(Second-pass priority?)\n"
-      "        Could calc potential facilitators based off if the dist to hub is greater than itself, and if the "
-      "distance is under some value\n"
-      "\n"
-      "- Add packages to trucks based on (package priority? use time variable to track current time?)\n"
-      "- Packages should be updated by truck action methods (load, drive, deliver(maybe a Driver method?))\n")
-
 # Import location info (creates Location objects and sets distances)
 raw_locations = Interface.read_csv("data/distance_info.csv")
 Interface.list_to_location_list(raw_locations)
