@@ -23,8 +23,8 @@ print("WIP NOTES:\n"
       "- Add packages to trucks based on (package priority? use time variable to track current time?)\n"
       "- Packages should be updated by truck action methods (load, drive, deliver(maybe a Driver method?))\n")
 
-# Import location info
-raw_locations = Interface.read_csv("../data/distance_info.csv")
+# Import location info (creates Location objects and sets distances)
+raw_locations = Interface.read_csv("data/distance_info.csv")
 Interface.list_to_location_list(raw_locations)
 
 # Set the HUB for this instance
@@ -35,7 +35,7 @@ Interface.set_hub(wgu)
 pkg_table = HashTable(50)
 
 # Read CSV package data
-raw_pkgs = Interface.read_csv("../data/package_info.csv")
+raw_pkgs = Interface.read_csv("data/package_info.csv")
 
 # Convert CSV data to a list of Package objects
 pkg_list = Interface.list_to_package_list(raw_pkgs)
