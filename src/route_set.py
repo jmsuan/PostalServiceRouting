@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import random
+
 from location import Location
 
 
@@ -10,7 +13,7 @@ class RouteSet:
 
         :param routes: A set of routes (i.e. a set of Location lists).
         """
-        self.route_set = routes
+        self._route_set = routes
 
     def mutate(self) -> RouteSet:
         """
@@ -19,7 +22,52 @@ class RouteSet:
 
         :return: A new RouteSet that can be considered a child of this single parent RouteSet.
         """
-        pass  # TODO: implement
+        # Save routes into an iterable list
+        new_list = list(self._route_set)
+        num_routes = len(new_list)
+
+        random.seed(51)  # Test seed 51
+        # For each route
+        for i in range(num_routes):
+            current_route = new_list[i]
+
+            # Choose whether to mutate this particular route or not at all
+            if random.randint(1, 2) % 2 == 0:
+                # Skip mutating this route
+                continue
+
+            # Choose to reorder self or exchange with neighbor
+            if random.randint(1, 2) % 2 == 0:
+                # Chose to exchange with neighbor.
+                # Choose a random neighbor
+                if random.randint(1, 2) % 2 == 0:
+                    # Next Neighbor
+                    neighbor_route = new_list[(i + 1) % num_routes]
+                else:
+                    # Previous Neighbor
+                    neighbor_route = new_list[(i - 1) % num_routes]
+
+                # Choose whether to "swap" or "give".
+                if random.randint(1, 2) % 2 == 0:
+                    # Swap
+                    ix_swap_from = random.randint(1, len(current_route) - 2)
+                    ix_swap_to = random.randint(1, len(neighbor_route) - 2)
+                    swap_location = current_route[ix_swap_from]
+                    current_route[ix_swap_from] = neighbor_route[ix_swap_to]
+                    neighbor_route[ix_swap_to] = swap_location
+                else:
+                    # Give
+                    ix_give = random.randint(1, len(current_route) - 2)
+                    ix_insert = random.randint(1, len(neighbor_route) - 2)
+                    neighbor_route.insert(ix_insert, current_route[ix_give])
+            else:
+                # Chose to reorder self.
+                ix_swap_from = random.randint(1, len(current_route) - 2)
+                ix_swap_to = random.randint(1, len(current_route) - 2)
+                swap_location = current_route[ix_swap_from]
+                current_route[ix_swap_from] = current_route[ix_swap_to]
+                current_route[ix_swap_to] = swap_location
+        return RouteSet(set(new_list))
 
     def offspring(self, other_parent: RouteSet) -> RouteSet:
         """
@@ -35,7 +83,7 @@ class RouteSet:
                  Truck.
         """
         distance = 0.0
-        for route in self.route_set:
+        for route in self._route_set:
             distance += RouteSet.__get_route_distance(route)
         return distance
 
@@ -45,7 +93,7 @@ class RouteSet:
             traversing.
         """
         found_locations = set()
-        for route in self.route_set:
+        for route in self._route_set:
             for location in route:
                 found_locations.add(location)
         return found_locations
@@ -55,7 +103,7 @@ class RouteSet:
         :return: The number of Locations in the longest route that's part of the set.
         """
         max_length = -1
-        for route in self.route_set:
+        for route in self._route_set:
             if len(route) > max_length:
                 max_length = len(route)
         return max_length
@@ -66,7 +114,7 @@ class RouteSet:
         """
         # Gather the location count of each route
         lengths = []
-        for route in self.route_set:
+        for route in self._route_set:
             lengths.append(len(route))
 
         return RouteSet.__calculate_median(lengths)
@@ -80,7 +128,7 @@ class RouteSet:
         :return: The largest route-petal width of all the given routes in the set.
         """
         max_deviance = -1.0
-        for route in self.route_set:
+        for route in self._route_set:
             deviance = RouteSet.__get_route_deviance(route, hub_location)
             if deviance > max_deviance:
                 max_deviance = deviance
@@ -95,7 +143,7 @@ class RouteSet:
         :return: The average route-petal width of all the given routes in the set.
         """
         deviance_list = []
-        for route in self.route_set:
+        for route in self._route_set:
             deviance = RouteSet.__get_route_deviance(route, hub_location)
             deviance_list.append(deviance)
         return sum(deviance_list) / len(deviance_list)
@@ -106,7 +154,7 @@ class RouteSet:
         :return: The Location density of the route (num_locations / route_distance).
         """
         max_density = 0.0
-        for route in self.route_set:
+        for route in self._route_set:
             location_density = len(route) / RouteSet.__get_route_distance(route)
             if location_density > max_density:
                 max_density = location_density
@@ -118,7 +166,7 @@ class RouteSet:
         :return: The median Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self.route_set:
+        for route in self._route_set:
             location_density = len(route) / RouteSet.__get_route_distance(route)
             density_list.append(location_density)
 
@@ -130,7 +178,7 @@ class RouteSet:
         :return: The average Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self.route_set:
+        for route in self._route_set:
             location_density = len(route) / RouteSet.__get_route_distance(route)
             density_list.append(location_density)
 
