@@ -26,7 +26,6 @@ class RouteSet:
         new_list = list(self._route_set)
         num_routes = len(new_list)
 
-        random.seed(51)  # Test seed 51
         # For each route
         for i in range(num_routes):
             current_route = new_list[i]
@@ -75,7 +74,16 @@ class RouteSet:
         :param other_parent:
         :return:
         """
-        pass  # TODO: implement
+        # Here, it might be a good idea to do the following:
+        # 1. Combine the "best" routes within each set into a new RouteSet.
+        #   a. We will need to detect if ANY subset of routes has the same Locations as the other RouteSet
+        #   b. Check for partial fitness of the route subsets to determine which to keep.
+        # 2. If no subsets with equal Locations exist, then:
+        #   a. Test partial fitness of all routes.
+        #   b. Keep the "best" route.
+        #   c. (Iteratively) go through the rest of the routes, and if any of the Locations are in the routes chosen
+        #      before it, remove the Location from the route, then choose it to add to the child.
+        pass
 
     def get_total_distance(self) -> float:
         """
