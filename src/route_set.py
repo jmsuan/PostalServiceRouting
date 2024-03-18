@@ -56,9 +56,19 @@ class RouteSet:
                     neighbor_route[ix_swap_to] = swap_location
                 else:
                     # Give
-                    ix_give = random.randint(1, len(current_route) - 2)
-                    ix_insert = random.randint(1, len(neighbor_route) - 2)
-                    neighbor_route.insert(ix_insert, current_route[ix_give])
+                    if len(current_route) <= 2 and len(neighbor_route) <= 2:
+                        # Both routes only have the HUB location. Skip giving.
+                        continue
+                    if len(current_route) <= 2:
+                        # Current route too short. Take from neighbor instead of giving.
+                        ix_give = random.randint(1, len(neighbor_route) - 2)
+                        ix_insert = random.randint(1, len(current_route) - 2)
+                        current_route.insert(ix_insert, neighbor_route[ix_give])
+                    else:
+                        # Give to neighbor
+                        ix_give = random.randint(1, len(current_route) - 2)
+                        ix_insert = random.randint(1, len(neighbor_route) - 2)
+                        neighbor_route.insert(ix_insert, current_route[ix_give])
             else:
                 # Chose to reorder self.
                 ix_swap_from = random.randint(1, len(current_route) - 2)
@@ -74,8 +84,8 @@ class RouteSet:
         :param other_parent:
         :return:
         """
-        # Here, it might be a good idea to do the following:
-        # 1. Combine the "best" routes within each set into a new RouteSet.
+        # Here, we aim to do the following:
+        # 1. Combine the "best" routes from each set into a new RouteSet.
         #   a. We will need to detect if ANY subset of routes has the same Locations as the other RouteSet
         #   b. Check for partial fitness of the route subsets to determine which to keep.
         # 2. If no subsets with equal Locations exist, then:
@@ -83,7 +93,99 @@ class RouteSet:
         #   b. Keep the "best" route.
         #   c. (Iteratively) go through the rest of the routes, and if any of the Locations are in the routes chosen
         #      before it, remove the Location from the route, then choose it to add to the child.
-        pass
+
+        # Make new lists for each parent
+        list_one = list(self._route_set)
+        list_two = list(other_parent._route_set)
+        len_one = len(list_one)
+        len_two = len(list_two)
+
+        # Validate num_routes
+        if len_one != len_two:
+            raise ValueError("Two RouteSets with a different number of routes detected! This method doesn't support "
+                             "RouteSets of varying length.")
+        else:
+            num_routes = len_one
+
+        # Test largest sets of route Locations first, progressively reducing size until it can't find any more matches.
+        location_set_one = set()
+        for route in list_one:
+            for location in route:
+                location_set_one.add(location)
+        location_set_two = set()
+        for route in list_two:
+            for location in route:
+                location_set_two.add(location)
+
+        # Validate locations
+        if location_set_one != location_set_two:
+            raise ValueError("Two RouteSets don't have the same locations! Two parent RouteSets must have the same "
+                             "locations.")
+        else:
+            all_locations = location_set_one
+
+        # We will cycle through each route, subtracting locations in the chosen route from the set of all locations
+        # If one of these subtracted location sets is in a subtracted location set of the RouteSet we're comparing to,
+        # then we can continue trying to reduce the set size until we find the smallest equivalent location subsets.
+        subset_one = all_locations
+        subset_two = all_locations
+        subset_list_one = list_one.__new__(list)
+        subset_list_two = list_two.__new__(list)
+        for i in range(num_routes):
+            # Update search params for each level
+            num_routes_at_this_level = len(subset_one)
+            common_grouping_at_this_level = False
+
+            for j in range(num_routes_at_this_level):
+                # Subtract one route from test set
+                set_compare_one = subset_one.difference(set(subset_list_one[j][1:-1]))  # Don't include HUB
+
+                # Test each subtracted set in subset_two
+                for k in range(num_routes_at_this_level):
+                    set_compare_two = subset_two.difference(set(subset_list_two[k][1:-1]))  # Don't include HUB
+
+                    # Check if there is a grouping of route(s) that share common locations among the subsets.
+                    if set_compare_one.issubset(set_compare_two):
+                        # Use the first one found.
+                        subset_one = set_compare_one.__new__(set)
+                        subset_two = set_compare_two.__new__(set)
+                        subset_list_one = subset_list_one - subset_list_one[j]
+                        subset_list_two = subset_list_two - subset_list_two[k]
+                        common_grouping_at_this_level = True
+                        break
+
+                if common_grouping_at_this_level:
+                    break  # Continue to next "level" of route subtraction
+
+            if common_grouping_at_this_level is False:
+                break  # There are no more location grouping matches
+
+        # Test to see if there was a grouping that was found
+        if subset_list_one != list_one and subset_list_two != list_two:
+            # A subgroup of Location matches were found among the RouteSets.
+            # Compare them here.
+            pass  # TODO: compare the two RouteSet subsets for partial fitness to choose which one to keep and return.
+
+    def get_routes(self) -> set[list[Location]]:
+        return self._route_set
+
+    def get_route_from_location(self, location: Location) -> list[Location]:
+        """
+        :param location: The Location you're searching this RouteSet for. Cannot be the HUB location.
+        :return: A route (list of Locations) that contains the Location specified.
+        """
+        num_routes_found = 0
+        route_found = None
+        for route in self._route_set:
+            if location in route:
+                num_routes_found += 1
+                route_found = route
+        if num_routes_found > 1:
+            raise ValueError(f"Invalid RouteSet detected! {self} has more than one {location} location.\n"
+                             f"If this is the intended HUB location, ensure that ")
+        if num_routes_found == 0:
+            raise ValueError(f"Invalid RouteSet detected! {self} doesn't have the {location} location.")
+        return route_found
 
     def get_total_distance(self) -> float:
         """
