@@ -4,6 +4,9 @@ from hash_table import HashTable
 from interface import Interface
 from location import Location
 
+# Print a new line for readability
+print()
+
 # Import location info (creates Location objects and sets distances)
 raw_locations = Interface.read_csv("data/distance_info.csv")
 Interface.list_to_location_list(raw_locations)
@@ -12,6 +15,46 @@ Interface.list_to_location_list(raw_locations)
 wgu = Location.get_location_by_name("Western Governors University")
 Interface.set_hub(wgu)
 
+# Check if there is a saved set of routes
+try:
+    Interface.read_csv("data/saved_routes.csv")
+    saved_routes_exist = True
+except FileNotFoundError:
+    saved_routes_exist = False
+
+# Create the list of routes (list of lists of Location objects)
+if saved_routes_exist:
+    # Ask user if they want to use saved routes or create new ones
+    print("There is a saved set of routes that have already been created. Do you want to use these routes?")
+    use_saved_routes = input("Enter 'y' or 'n': ").strip().lower()
+    if use_saved_routes == "n":
+        print("Are you sure you want to create new routes? This will overwrite the saved routes.\n"
+              "(Creating routes may take a lot of compute power depending on the what parameters you enter for the"
+              "genetic algorithm!)")
+        confirm = input("Enter 'y' or 'n': ").strip().lower()
+        if confirm == "y":
+            # Ask user for parameters to create routes
+            route_list = Interface.create_routes()
+        else:
+            print("Using saved routes...")
+            route_list = Interface.list_to_route_list(Interface.read_csv("data/saved_routes.csv"))
+    else:
+        print("Using saved routes...")
+        route_list = Interface.list_to_route_list(Interface.read_csv("data/saved_routes.csv"))
+else:
+    # Ask user if they want to create new routes
+    print("There are no saved routes. Do you want to create new routes?")
+    create_new_routes = input("Enter 'y' or 'n': ").strip().lower()
+    if create_new_routes == "y":
+        # Ask user for parameters to create routes
+        route_list = Interface.create_routes()
+    else:
+        print("Exiting program...")
+        exit()
+
+# Print all route statistics
+Interface.print_route_statistics(route_list)
+"""
 # Create custom HashTable object to hold packages
 pkg_table = HashTable(50)
 
@@ -30,3 +73,4 @@ for pkg in pkg_list:
 # Print all packages in HashTable in a table format
 print("Package Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
+"""
