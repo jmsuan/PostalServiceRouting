@@ -78,93 +78,61 @@ class RouteSet:
                 current_route[ix_swap_to] = swap_location
         return RouteSet(set(new_list))
 
-    def offspring(self, other_parent: RouteSet) -> RouteSet:
-        """
+    def offspring(self, other_parent: RouteSet, hub_location: Location) -> RouteSet:
+        # Define a function to calculate the location density of a route
+        def location_density(route: list[Location]) -> float:
+            route_distance = RouteSet.__get_route_distance(route)
+            if route_distance == 0.0:
+                return 0.0
+            else:
+                # Subtract 2 to account for the HUB location at the start and end of the route
+                return (len(route) - 2) / route_distance
 
-        :param other_parent:
-        :return:
-        """
-        # Here, we aim to do the following:
-        # 1. Combine the "best" routes from each set into a new RouteSet.
-        #   a. We will need to detect if ANY subset of routes has the same Locations as the other RouteSet
-        #   b. Check for partial fitness of the route subsets to determine which to keep.
-        # 2. If no subsets with equal Locations exist, then:
-        #   a. Test partial fitness of all routes.
-        #   b. Keep the "best" route.
-        #   c. (Iteratively) go through the rest of the routes, and if any of the Locations are in the routes chosen
-        #      before it, remove the Location from the route, then choose it to add to the child.
+        # Create a list of all routes from both parents and calculate their location densities
+        all_routes = list(self._route_set) + list(other_parent._route_set)
+        route_densities = [(route, location_density(route)) for route in all_routes]
 
-        # Make new lists for each parent
-        list_one = list(self._route_set)
-        list_two = list(other_parent._route_set)
-        len_one = len(list_one)
-        len_two = len(list_two)
+        # Sort the list of routes in descending order of location density
+        route_densities.sort(key=lambda x: x[1], reverse=True)
 
-        # Validate num_routes
-        if len_one != len_two:
-            raise ValueError("Two RouteSets with a different number of routes detected! This method doesn't support "
-                             "RouteSets of varying length.")
-        else:
-            num_routes = len_one
+        # Initialize an empty set to store the locations that have already been added to the offspring's routes
+        added_locations = set()
 
-        # Test largest sets of route Locations first, progressively reducing size until it can't find any more matches.
-        location_set_one = set()
-        for route in list_one:
-            for location in route:
-                location_set_one.add(location)
-        location_set_two = set()
-        for route in list_two:
-            for location in route:
-                location_set_two.add(location)
+        # Initialize an empty list to store the offspring's routes
+        offspring_routes = []
 
-        # Validate locations
-        if location_set_one != location_set_two:
-            raise ValueError("Two RouteSets don't have the same locations! Two parent RouteSets must have the same "
-                             "locations.")
-        else:
-            all_locations = location_set_one
+        # Iterate over the sorted list of routes
+        for route, _ in route_densities:
+            # Stop adding routes if offspring has same number of routes as parents
+            if len(offspring_routes) >= len(self._route_set):
+                break
+            # Create a new route that contains only the locations that are not already in the set of added locations
+            new_route = [location for location in route if location not in added_locations and location != hub_location]
+            # Add the HUB location to the start and end of the new route
+            new_route.insert(0, hub_location)
+            new_route.append(hub_location)
+            # Add this new route to the offspring's list of routes and add its locations to the set of added locations
+            offspring_routes.append(new_route)
+            added_locations.update(new_route)
 
-        # We will cycle through each route, subtracting locations in the chosen route from the set of all locations
-        # If one of these subtracted location sets is in a subtracted location set of the RouteSet we're comparing to,
-        # then we can continue trying to reduce the set size until we find the smallest equivalent location subsets.
-        subset_one = all_locations
-        subset_two = all_locations
-        subset_list_one = list_one.__new__(list)
-        subset_list_two = list_two.__new__(list)
-        for i in range(num_routes):
-            # Update search params for each level
-            num_routes_at_this_level = len(subset_one)
-            common_grouping_at_this_level = False
+        # If the number of offspring routes is less than the number of parent routes, add empty routes until they are
+        # equal
+        while len(offspring_routes) < len(self._route_set):
+            offspring_routes.append([hub_location, hub_location])
 
-            for j in range(num_routes_at_this_level):
-                # Subtract one route from test set
-                set_compare_one = subset_one.difference(set(subset_list_one[j][1:-1]))  # Don't include HUB
+        # Iterate over all Locations from both parents
+        all_locations = self.get_all_locations().union(other_parent.get_all_locations())
+        for location in all_locations:
+            # If the Location is not in the set of added locations, add it to the least dense route in the offspring
+            if location not in added_locations and location != hub_location:
+                least_dense_route = min(offspring_routes, key=location_density)
+                least_dense_route.insert(-1, location)  # Insert before the last HUB location
+                added_locations.add(location)
 
-                # Test each subtracted set in subset_two
-                for k in range(num_routes_at_this_level):
-                    set_compare_two = subset_two.difference(set(subset_list_two[k][1:-1]))  # Don't include HUB
+        # Create a new RouteSet instance using the offspring's list of routes
+        offspring = RouteSet(set(offspring_routes))
 
-                    # Check if there is a grouping of route(s) that share common locations among the subsets.
-                    if set_compare_one.issubset(set_compare_two):
-                        # Use the first one found.
-                        subset_one = set_compare_one.__new__(set)
-                        subset_two = set_compare_two.__new__(set)
-                        subset_list_one = subset_list_one - subset_list_one[j]
-                        subset_list_two = subset_list_two - subset_list_two[k]
-                        common_grouping_at_this_level = True
-                        break
-
-                if common_grouping_at_this_level:
-                    break  # Continue to next "level" of route subtraction
-
-            if common_grouping_at_this_level is False:
-                break  # There are no more location grouping matches
-
-        # Test to see if there was a grouping that was found
-        if subset_list_one != list_one and subset_list_two != list_two:
-            # A subgroup of Location matches were found among the RouteSets.
-            # Compare them here.
-            pass  # TODO: compare the two RouteSet subsets for partial fitness to choose which one to keep and return.
+        return offspring
 
     def get_routes(self) -> set[list[Location]]:
         return self._route_set
