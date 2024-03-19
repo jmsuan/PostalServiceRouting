@@ -344,3 +344,48 @@ class Interface:
             if ix_item_length > max_length:
                 max_length = ix_item_length
         return max_length
+
+    @staticmethod
+    def list_to_route_list(route_data: list[list[str]]) -> list[list[Location]]:
+        """
+        Converts a collection of raw route data into a list of route (lists of Location objects).
+
+        :param route_data: A list of lists that containing names of Location objects.
+        :return: A list of routes (list of Locations) that were created from the raw data.
+        """
+        # Individually convert each row to a route and add to new list
+        route_list = []
+        for raw_route in route_data:
+            # Convert each location name to a Location object
+            converted_route = []
+            for location_name in raw_route:
+                converted_route.append(Location.get_location_by_name(location_name))
+            route_list.append(converted_route)
+
+        return route_list
+
+    @staticmethod
+    def create_routes() -> list[list[Location]]:
+        """
+        Asks the user for the parameters to create routes and returns the list of routes generated from a genetic
+        algorithm.
+
+        :return: A list of routes (list of Locations) that were created from the user input.
+        """
+        parameters_finalized = False
+        while parameters_finalized is False:
+            # Ask user for number of routes to create
+            num_routes = int(input("How many routes would you like to create? "))
+
+            # Ask user for the number of generations to run the genetic algorithm
+            num_generations = int(input("How many generations would you like to run the genetic algorithm? "))
+
+            # Ask user for the population size
+            population_size = int(input("What would you like the population size to be? "))
+
+            # Ask user for the mutation rate
+            mutation_rate = float(input("What would you like the mutation rate to be? "))
+
+            # Ask user for the number of parents to keep
+            num_parents = int(input("How many parents would you like to keep? "))
+
