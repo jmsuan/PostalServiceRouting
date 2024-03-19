@@ -7,9 +7,9 @@ from route_set import RouteSet
 
 class Optimizer:
     """
-    The scheduler is divided into two parts to simplify mileage optimization.
+    The Optimizer is divided into two parts to simplify mileage optimization.
 
-    First, the Scheduler generates routes from the hub, using the list of Locations.
+    First, the Optimizer generates routes from the hub, using the list of Locations.
 
     - The routes aim to achieve optimal milage by creating static routes that hit the most Locations with the smallest
       total distance travelled. This means that a single route ideally follow a straight line out from the hub to the
@@ -27,7 +27,7 @@ class Optimizer:
       route the first time, it will only travel to the Locations that need to be delivered to (in the order that is
       specified by the route).
 
-    Next, the Scheduler generates "priorities" for each package. This takes into account the following characteristics:
+    Next, the Optimizer generates "priorities" for each package. This takes into account the following characteristics:
 
     - The deadline of the package.
     - Any special truck requirements (e.g. a package that needs to be delivered by a truck with a certain id).
@@ -36,7 +36,7 @@ class Optimizer:
     - How many other high priority packages are nearby that facilitate ideal "elevator" routes. (This is a second-pass
       priority, as it is not as important as the other factors. It is also more difficult to calculate, as it requires
       the routes to be generated first.)
-    - The Scheduler will then assign the packages to the Trucks in the order of their priority. The Trucks will then
+    - The Optimizer will then assign the packages to the Trucks in the order of their priority. The Trucks will then
       follow the routes that were generated earlier, and deliver the packages in the order that they were assigned, but
       only if the package is on the route that the Truck is following.
     """
