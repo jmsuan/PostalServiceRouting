@@ -79,6 +79,22 @@ class RouteSet:
         return RouteSet(set(new_list))
 
     def offspring(self, other_parent: RouteSet, hub_location: Location) -> RouteSet:
+        """
+        Create a new RouteSet that is a child of this RouteSet and another parent RouteSet. The offspring will contain
+        at least one of the routes from both parents, and will contain all the Locations from both parents.
+
+        :param other_parent: The other parent RouteSet to create an offspring with.
+        :param hub_location: The Location that is the starting and ending point of all routes.
+        :return:
+        """
+        # Check if both RouteSet instances have the same set of Locations
+        if self.get_all_locations() != other_parent.get_all_locations():
+            raise ValueError("Both RouteSet instances must have the same set of Locations.")
+
+        # Check if both RouteSet instances have the same number of routes
+        if len(self._route_set) != len(other_parent._route_set):
+            raise ValueError("Both RouteSet instances must have the same number of routes.")
+
         # Define a function to calculate the location density of a route
         def location_density(route: list[Location]) -> float:
             route_distance = RouteSet.__get_route_distance(route)
