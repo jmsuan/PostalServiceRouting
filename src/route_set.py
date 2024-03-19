@@ -169,16 +169,6 @@ class RouteSet:
             raise ValueError(f"Invalid RouteSet detected! {self} doesn't have the {location} location.")
         return route_found
 
-    def get_total_distance(self) -> float:
-        """
-        :return: The total distance in miles of all routes in the set, assuming each route is only traversed once by one
-                 Truck.
-        """
-        distance = 0.0
-        for route in self._route_set:
-            distance += RouteSet.__get_route_distance(route)
-        return distance
-
     def get_all_locations(self) -> set[Location]:
         """
         :return: A set of every location the RouteSet traverses. Ideally, this is all the Locations that need
@@ -189,6 +179,16 @@ class RouteSet:
             for location in route:
                 found_locations.add(location)
         return found_locations
+
+    def get_total_distance(self) -> float:
+        """
+        :return: The total distance in miles of all routes in the set, assuming each route is only traversed once by one
+                 Truck.
+        """
+        distance = 0.0
+        for route in self._route_set:
+            distance += RouteSet.__get_route_distance(route)
+        return distance
 
     def get_max_route_length(self) -> int:
         """
