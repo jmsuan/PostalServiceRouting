@@ -34,9 +34,11 @@ class Location:
         return self._name
 
     def __str__(self):
-        return (f"[{self.get_name()}, "
+        """return (f"[{self.get_name()}, "
                 f"{self.get_address()}, "
-                f"({self.get_zip()})]")
+                f"({self.get_zip()})]")"""
+        return (f"[{self.get_name()[:3].strip()}, "
+                f"{self.get_zip()}]")  # Shorter version for debugging
 
     def __repr__(self):
         return self.__str__()

@@ -11,7 +11,17 @@ class RouteList:
 
         :param routes: A set of routes (i.e. a set of Location lists).
         """
-        self._route_set = routes
+        self._route_list = routes
+
+    def __str__(self):
+        route_str = "\nRouteList("
+        for route in self._route_list:
+            route_str += f"\n\t{route}"
+        route_str += "\n)"
+        return route_str
+
+    def __repr__(self):
+        return self.__str__()
 
     def mutate(self) -> RouteList:
         """
@@ -21,7 +31,7 @@ class RouteList:
         :return: A new RouteList that can be considered a child of this single parent RouteList.
         """
         # Save routes into an iterable list
-        new_list = list(self._route_set)
+        new_list = list(self._route_list)
         num_routes = len(new_list)
 
         # For each route
@@ -44,7 +54,7 @@ class RouteList:
                     neighbor_route = new_list[(i - 1) % num_routes]
 
                 # Choose whether to "swap" or "give".
-                if random.random() < 0.1:
+                if random.random() < 0.1 and len(current_route) > 2 and len(neighbor_route) > 2:
                     # Swap
                     ix_swap_from = random.randint(1, len(current_route) - 2)
                     ix_swap_to = random.randint(1, len(neighbor_route) - 2)
@@ -56,13 +66,13 @@ class RouteList:
                     if len(current_route) <= 2 and len(neighbor_route) <= 2:
                         # Both routes only have the HUB location. Skip giving.
                         continue
-                    if len(current_route) <= 2:
+                    if len(current_route) <= 2 and 4 < len(neighbor_route):
                         # Current route too short. Take from neighbor instead of giving.
                         ix_give = random.randint(1, len(neighbor_route) - 2)
                         ix_insert = random.randint(1, len(current_route) - 2)
                         current_route.insert(ix_insert, neighbor_route[ix_give])
-                    else:
-                        # Give to neighbor
+                    elif len(neighbor_route) <= 2 and 4 < len(current_route):
+                        # Neighbor route too short. Give to neighbor instead of taking.
                         ix_give = random.randint(1, len(current_route) - 2)
                         ix_insert = random.randint(1, len(neighbor_route) - 2)
                         neighbor_route.insert(ix_insert, current_route[ix_give])
@@ -97,41 +107,12 @@ class RouteList:
             raise ValueError("Both RouteList instances must have the same set of Locations.")
 
         # Check if both RouteList instances have the same number of routes
-        if len(self._route_set) != len(other_parent._route_set):
+        if len(self._route_list) != len(other_parent._route_list):
             raise ValueError("Both RouteList instances must have the same number of routes.")
 
-        # Define a function to calculate the location density of a route
-        def location_density(route: list[Location]) -> float:
-            route_distance = RouteList.get_route_distance(route)
-            if route_distance == 0.0:
-                return 0.0
-            else:
-                # Subtract 2 to account for the HUB location at the start and end of the route
-                return (len(route) - 2) / route_distance
-
-        # Define a function to calculate the fitness of a route
-        def route_fitness(route: list[Location]) -> float:
-            # Get all factors
-            total_distance = RouteList.get_route_distance(route)
-            num_locations = len(route) - 2  # Subtract 2 to account for the HUB location
-            deviance = RouteList.__get_route_deviance(route, hub_location)
-            density = location_density(route)
-
-            # Apply weights to each factor
-            distance_weight = -0.3  # Negative because we want to minimize distance
-            num_locations_weight = -10.0  # Negative because we want to minimize the number of locations
-            deviance_weight = 0.5
-            density_weight = 1.0
-
-            # Calculate fitness
-            fitness = (total_distance * distance_weight) + (num_locations * num_locations_weight) + (
-                    deviance * deviance_weight) + (density * density_weight)
-
-            return fitness
-
-        # Create a list of all routes from both parents and calculate their location densities
-        all_routes = list(self._route_set) + list(other_parent._route_set)
-        route_fitnesses = [(route, route_fitness(route)) for route in all_routes]
+        # Create a list of all routes from both parents and calculate their fitness
+        all_routes = list(self._route_list) + list(other_parent._route_list)
+        route_fitnesses = [(route, RouteList.__get_route_fitness(route, hub_location)) for route in all_routes]
 
         # Calculate the total fitness of all routes
         total_fitness = sum(fitness for _, fitness in route_fitnesses)
@@ -139,27 +120,31 @@ class RouteList:
         # Create a list to store the offspring's routes
         offspring_routes = []
 
+        # Initialize an empty set to store the locations that have already been added to the offspring's routes
+        added_locations = set()
+
         # While we need more routes for the offspring
-        while len(offspring_routes) < len(self._route_set):
+        while len(offspring_routes) < len(self._route_list):
             # Generate a random number between 0 and the total fitness
             pick = random.uniform(0, total_fitness)
             current = 0
 
             # Go through the routes
-            for route, fitness in route_fitnesses:
+            for i, (route, fitness) in enumerate(route_fitnesses[:]):  # Make a copy of the list to iterate over
                 current += fitness
                 if current > pick:
                     # If the current sum of fitness is greater than the pick, select this route
                     offspring_routes.append(route)
+                    added_locations.update([location for location in route])
+                    # Remove the selected route from the total list and adjust the total fitness
+                    route_fitnesses.remove((route, fitness))
+                    total_fitness -= fitness
                     break
-
-        # Initialize an empty set to store the locations that have already been added to the offspring's routes
-        added_locations = set()
 
         # Iterate over the sorted list of routes
         for route, _ in route_fitnesses:
             # Stop adding routes if offspring has same number of routes as parents
-            if len(offspring_routes) >= len(self._route_set):
+            if len(offspring_routes) >= len(self._route_list):
                 break
             # Create a new route that contains only the locations that are not already in the set of added locations
             new_route = [location for location in route if location not in added_locations and location != hub_location]
@@ -168,20 +153,15 @@ class RouteList:
             new_route.append(hub_location)
             # Add this new route to the offspring's list of routes and add its locations to the set of added locations
             offspring_routes.append(new_route)
-            added_locations.update(new_route)
+            added_locations.update([location for location in new_route])
 
-        # If the number of offspring routes is less than the number of parent routes, add empty routes until they are
-        # equal
-        while len(offspring_routes) < len(self._route_set):
-            offspring_routes.append([hub_location, hub_location])
-
-        # Iterate over all Locations from both parents
-        all_locations = self.get_all_locations().union(other_parent.get_all_locations())
+        # Ensure that the offspring_routes accommodates all locations
+        all_locations = self.get_all_locations()
         for location in all_locations:
-            # If the Location is not in the set of added locations, add it to the least dense route in the offspring
+            # If the Location is not in the set of added locations, add it to a random route in the offspring
             if location not in added_locations and location != hub_location:
-                least_dense_route = min(offspring_routes, key=route_fitness)
-                least_dense_route.insert(-1, location)  # Insert before the last HUB location
+                chosen_route = random.choice(offspring_routes)
+                chosen_route.insert(-1, location)  # Insert before the last HUB location
                 added_locations.add(location)
 
         # Create a new RouteList instance using the offspring's list of routes
@@ -189,8 +169,81 @@ class RouteList:
 
         return offspring
 
+    def get_fitness(self, hub_location: Location) -> float:
+        """
+        Calculate the fitness of this RouteList. The fitness is a measure of how well the set of routes is optimized
+        for the given problem.
+
+        :param hub_location: The starting and ending point of all the routes.
+        :return: A float representing the fitness of this RouteList.
+        """
+        # Get all factors
+        total_distance = self.get_total_distance()
+        max_route_length = self.get_max_route_length()
+        med_route_length = self.get_med_route_length()
+        max_deviation = self.get_max_deviance(hub_location)
+        avg_deviation = self.get_avg_deviance(hub_location)
+        max_density = self.get_max_locations_per_mile()
+        med_density = self.get_med_locations_per_mile()
+        avg_density = self.get_avg_locations_per_mile()
+
+        # Apply weights to each factor (negative if we want to minimize, positive if we want to maximize)
+        distance_weight = -1.0
+        max_route_length_weight = -1.0
+        med_route_length_weight = -1.0
+        max_deviation_weight = -1.0
+        avg_deviation_weight = -1.0
+        max_density_weight = 300.0
+        med_density_weight = 200.0
+        avg_density_weight = 40.0
+
+        # Calculate fitness
+        fitness = (total_distance * distance_weight +
+                   max_route_length * max_route_length_weight +
+                   med_route_length * med_route_length_weight +
+                   max_deviation * max_deviation_weight +
+                   avg_deviation * avg_deviation_weight +
+                   max_density * max_density_weight +
+                   med_density * med_density_weight +
+                   avg_density * avg_density_weight)
+
+        return fitness
+
+    @staticmethod
+    def __get_route_fitness(route: list[Location], hub_location: Location) -> float:
+        """
+        Calculate the fitness of a single route. The fitness is a measure of how well the route is optimized for the
+        given problem.
+
+        :param route: The route to calculate the fitness of.
+        :param hub_location: The starting and ending point of all the routes.
+        :return: A float representing the fitness of the route.
+        """
+        # Get all factors
+        total_distance = RouteList.get_route_distance(route)
+        num_locations = len(route) - 2  # Subtract 2 to account for the HUB location
+        deviance = RouteList.__get_route_deviance(route, hub_location)
+        route_distance = RouteList.get_route_distance(route)
+        if route_distance == 0.0:
+            density = 0.0
+        else:
+            # Subtract 2 to account for the HUB location at the start and end of the route
+            density = (len(route) - 2) / route_distance
+
+        # Apply weights to each factor
+        distance_weight = -0.3  # Negative because we want to minimize distance
+        num_locations_weight = -10.0  # Negative because we want to minimize the number of locations
+        deviance_weight = 0.5
+        density_weight = 1.0
+
+        # Calculate fitness
+        fitness = (total_distance * distance_weight) + (num_locations * num_locations_weight) + (
+                deviance * deviance_weight) + (density * density_weight)
+
+        return fitness
+
     def get_routes(self) -> list[list[Location]]:
-        return self._route_set
+        return self._route_list
 
     def get_route_from_location(self, location: Location) -> list[Location]:
         """
@@ -199,7 +252,7 @@ class RouteList:
         """
         num_routes_found = 0
         route_found = None
-        for route in self._route_set:
+        for route in self._route_list:
             if location in route:
                 num_routes_found += 1
                 route_found = route
@@ -216,7 +269,7 @@ class RouteList:
             traversing.
         """
         found_locations = set()
-        for route in self._route_set:
+        for route in self._route_list:
             for location in route:
                 found_locations.add(location)
         return found_locations
@@ -227,7 +280,7 @@ class RouteList:
                  Truck.
         """
         distance = 0.0
-        for route in self._route_set:
+        for route in self._route_list:
             distance += RouteList.get_route_distance(route)
         return distance
 
@@ -236,7 +289,7 @@ class RouteList:
         :return: The number of Locations in the longest route that's part of the set.
         """
         max_length = -1
-        for route in self._route_set:
+        for route in self._route_list:
             if len(route) > max_length:
                 max_length = len(route)
         return max_length
@@ -247,7 +300,7 @@ class RouteList:
         """
         # Gather the location count of each route
         lengths = []
-        for route in self._route_set:
+        for route in self._route_list:
             lengths.append(len(route))
 
         return RouteList.__calculate_median(lengths)
@@ -261,7 +314,7 @@ class RouteList:
         :return: The largest route-petal width of all the given routes in the set.
         """
         max_deviance = -1.0
-        for route in self._route_set:
+        for route in self._route_list:
             deviance = RouteList.__get_route_deviance(route, hub_location)
             if deviance > max_deviance:
                 max_deviance = deviance
@@ -276,7 +329,7 @@ class RouteList:
         :return: The average route-petal width of all the given routes in the set.
         """
         deviance_list = []
-        for route in self._route_set:
+        for route in self._route_list:
             deviance = RouteList.__get_route_deviance(route, hub_location)
             deviance_list.append(deviance)
         return sum(deviance_list) / len(deviance_list)
@@ -287,7 +340,7 @@ class RouteList:
         :return: The Location density of the route (num_locations / route_distance).
         """
         max_density = 0.0
-        for route in self._route_set:
+        for route in self._route_list:
             location_density = len(route) / RouteList.get_route_distance(route)
             if location_density > max_density:
                 max_density = location_density
@@ -299,7 +352,7 @@ class RouteList:
         :return: The median Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self._route_set:
+        for route in self._route_list:
             location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
@@ -311,7 +364,7 @@ class RouteList:
         :return: The average Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self._route_set:
+        for route in self._route_list:
             location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
@@ -350,6 +403,7 @@ class RouteList:
                 prev_location = location
             else:
                 distance += location.distance_from(prev_location)
+                prev_location = location
         return distance
 
     @staticmethod
