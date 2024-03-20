@@ -3,8 +3,8 @@ import random
 from location import Location
 
 
-class RouteSet:
-    def __init__(self, routes: set[list[Location]]):
+class RouteList:
+    def __init__(self, routes: list[list[Location]]):
         """
         A set of Routes (in this case, an ordered list of Locations). Defines methods to help mutate a set of routes,
         and also to help calculate the overall fitness.
@@ -13,12 +13,12 @@ class RouteSet:
         """
         self._route_set = routes
 
-    def mutate(self) -> RouteSet:
+    def mutate(self) -> RouteList:
         """
-        Change this RouteSet slightly such that some neighboring Location(s) could be "swapped" between their respective
-        routes, or given from one route to another.
+        Change this RouteList slightly such that some neighboring Location(s) could be "swapped" between their
+        respective routes, or given from one route to another.
 
-        :return: A new RouteSet that can be considered a child of this single parent RouteSet.
+        :return: A new RouteList that can be considered a child of this single parent RouteList.
         """
         # Save routes into an iterable list
         new_list = list(self._route_set)
@@ -28,16 +28,15 @@ class RouteSet:
         for i in range(num_routes):
             current_route = new_list[i]
 
-            # Choose whether to mutate this particular route or not at all
-            if random.randint(1, 2) % 2 == 0:
-                # Skip mutating this route
+            # Choose whether to mutate this route at all
+            if random.randint(1, num_routes) != 1:  # 1 in num_routes chance to mutate this route.
                 continue
 
             # Choose to reorder self or exchange with neighbor
-            if random.randint(1, 2) % 2 == 0:
+            if random.random() < 0.1 or len(current_route) <= 10:
                 # Chose to exchange with neighbor.
                 # Choose a random neighbor
-                if random.randint(1, 2) % 2 == 0:
+                if random.randint(0, 1) == 0:
                     # Next Neighbor
                     neighbor_route = new_list[(i + 1) % num_routes]
                 else:
@@ -45,7 +44,7 @@ class RouteSet:
                     neighbor_route = new_list[(i - 1) % num_routes]
 
                 # Choose whether to "swap" or "give".
-                if random.randint(1, 2) % 2 == 0:
+                if random.random() < 0.1:
                     # Swap
                     ix_swap_from = random.randint(1, len(current_route) - 2)
                     ix_swap_to = random.randint(1, len(neighbor_route) - 2)
@@ -70,41 +69,69 @@ class RouteSet:
             else:
                 # Chose to reorder self.
                 ix_swap_from = random.randint(1, len(current_route) - 2)
-                ix_swap_to = random.randint(1, len(current_route) - 2)
+
+                # Determine if the swap will be with the next or previous location
+                if random.randint(0, 1) == 0:
+                    # Swap with next location
+                    ix_swap_to = ix_swap_from + 1 if ix_swap_from < len(current_route) - 3 else ix_swap_from - 1
+                else:
+                    # Swap with previous location
+                    ix_swap_to = ix_swap_from - 1 if ix_swap_from > 2 else ix_swap_from + 1
+
                 swap_location = current_route[ix_swap_from]
                 current_route[ix_swap_from] = current_route[ix_swap_to]
                 current_route[ix_swap_to] = swap_location
-        return RouteSet(set(new_list))
+        return RouteList(new_list)
 
-    def offspring(self, other_parent: RouteSet, hub_location: Location) -> RouteSet:
+    def offspring(self, other_parent: RouteList, hub_location: Location) -> RouteList:
         """
-        Create a new RouteSet that is a child of this RouteSet and another parent RouteSet. The offspring will contain
-        at least one of the routes from both parents, and will contain all the Locations from both parents.
+        Create a new RouteList that is a child of this RouteList and another parent RouteList. The offspring will
+        contain at least one of the routes from both parents, and will contain all the Locations from both parents.
 
-        :param other_parent: The other parent RouteSet to create an offspring with.
+        :param other_parent: The other parent RouteList to create an offspring with.
         :param hub_location: The Location that is the starting and ending point of all routes.
         :return:
         """
-        # Check if both RouteSet instances have the same set of Locations
+        # Check if both RouteList instances have the same set of Locations
         if self.get_all_locations() != other_parent.get_all_locations():
-            raise ValueError("Both RouteSet instances must have the same set of Locations.")
+            raise ValueError("Both RouteList instances must have the same set of Locations.")
 
-        # Check if both RouteSet instances have the same number of routes
+        # Check if both RouteList instances have the same number of routes
         if len(self._route_set) != len(other_parent._route_set):
-            raise ValueError("Both RouteSet instances must have the same number of routes.")
+            raise ValueError("Both RouteList instances must have the same number of routes.")
 
         # Define a function to calculate the location density of a route
         def location_density(route: list[Location]) -> float:
-            route_distance = RouteSet.__get_route_distance(route)
+            route_distance = RouteList.get_route_distance(route)
             if route_distance == 0.0:
                 return 0.0
             else:
                 # Subtract 2 to account for the HUB location at the start and end of the route
                 return (len(route) - 2) / route_distance
 
+        # Define a function to calculate the fitness of a route
+        def route_fitness(route: list[Location]) -> float:
+            # Get all factors
+            total_distance = RouteList.get_route_distance(route)
+            num_locations = len(route) - 2  # Subtract 2 to account for the HUB location
+            deviance = RouteList.__get_route_deviance(route, hub_location)
+            density = location_density(route)
+
+            # Apply weights to each factor
+            distance_weight = -0.3  # Negative because we want to minimize distance
+            num_locations_weight = -10.0  # Negative because we want to minimize the number of locations
+            deviance_weight = 0.5
+            density_weight = 1.0
+
+            # Calculate fitness
+            fitness = (total_distance * distance_weight) + (num_locations * num_locations_weight) + (
+                    deviance * deviance_weight) + (density * density_weight)
+
+            return fitness
+
         # Create a list of all routes from both parents and calculate their location densities
         all_routes = list(self._route_set) + list(other_parent._route_set)
-        route_densities = [(route, location_density(route)) for route in all_routes]
+        route_densities = [(route, route_fitness(route)) for route in all_routes]
 
         # Sort the list of routes in descending order of location density
         route_densities.sort(key=lambda x: x[1], reverse=True)
@@ -143,17 +170,17 @@ class RouteSet:
                 least_dense_route.insert(-1, location)  # Insert before the last HUB location
                 added_locations.add(location)
 
-        # Create a new RouteSet instance using the offspring's list of routes
-        offspring = RouteSet(set(offspring_routes))
+        # Create a new RouteList instance using the offspring's list of routes
+        offspring = RouteList(offspring_routes)
 
         return offspring
 
-    def get_routes(self) -> set[list[Location]]:
+    def get_routes(self) -> list[list[Location]]:
         return self._route_set
 
     def get_route_from_location(self, location: Location) -> list[Location]:
         """
-        :param location: The Location you're searching this RouteSet for. Cannot be the HUB location.
+        :param location: The Location you're searching this RouteList for. Cannot be the HUB location.
         :return: A route (list of Locations) that contains the Location specified.
         """
         num_routes_found = 0
@@ -163,15 +190,15 @@ class RouteSet:
                 num_routes_found += 1
                 route_found = route
         if num_routes_found > 1:
-            raise ValueError(f"Invalid RouteSet detected! {self} has more than one {location} location.\n"
+            raise ValueError(f"Invalid RouteList detected! {self} has more than one {location} location.\n"
                              f"If this is the intended HUB location, ensure that ")
         if num_routes_found == 0:
-            raise ValueError(f"Invalid RouteSet detected! {self} doesn't have the {location} location.")
+            raise ValueError(f"Invalid RouteList detected! {self} doesn't have the {location} location.")
         return route_found
 
     def get_all_locations(self) -> set[Location]:
         """
-        :return: A set of every location the RouteSet traverses. Ideally, this is all the Locations that need
+        :return: A set of every location the RouteList traverses. Ideally, this is all the Locations that need
             traversing.
         """
         found_locations = set()
@@ -187,7 +214,7 @@ class RouteSet:
         """
         distance = 0.0
         for route in self._route_set:
-            distance += RouteSet.__get_route_distance(route)
+            distance += RouteList.get_route_distance(route)
         return distance
 
     def get_max_route_length(self) -> int:
@@ -209,7 +236,7 @@ class RouteSet:
         for route in self._route_set:
             lengths.append(len(route))
 
-        return RouteSet.__calculate_median(lengths)
+        return RouteList.__calculate_median(lengths)
 
     def get_max_deviance(self, hub_location: Location) -> float:
         """
@@ -221,7 +248,7 @@ class RouteSet:
         """
         max_deviance = -1.0
         for route in self._route_set:
-            deviance = RouteSet.__get_route_deviance(route, hub_location)
+            deviance = RouteList.__get_route_deviance(route, hub_location)
             if deviance > max_deviance:
                 max_deviance = deviance
         return max_deviance
@@ -236,42 +263,42 @@ class RouteSet:
         """
         deviance_list = []
         for route in self._route_set:
-            deviance = RouteSet.__get_route_deviance(route, hub_location)
+            deviance = RouteList.__get_route_deviance(route, hub_location)
             deviance_list.append(deviance)
         return sum(deviance_list) / len(deviance_list)
 
     def get_max_locations_per_mile(self) -> float:
         """
-        Calculates the distance-efficiency of the most distance-efficient route in the RouteSet.
+        Calculates the distance-efficiency of the most distance-efficient route in the RouteList.
         :return: The Location density of the route (num_locations / route_distance).
         """
         max_density = 0.0
         for route in self._route_set:
-            location_density = len(route) / RouteSet.__get_route_distance(route)
+            location_density = len(route) / RouteList.get_route_distance(route)
             if location_density > max_density:
                 max_density = location_density
         return max_density
 
     def get_med_locations_per_mile(self) -> float:
         """
-        Calculates the median distance-efficiency of the all routes in the RouteSet.
+        Calculates the median distance-efficiency of the all routes in the RouteList.
         :return: The median Location density of the routes (num_locations / route_distance).
         """
         density_list = []
         for route in self._route_set:
-            location_density = len(route) / RouteSet.__get_route_distance(route)
+            location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
-        return RouteSet.__calculate_median(density_list)
+        return RouteList.__calculate_median(density_list)
 
     def get_avg_locations_per_mile(self) -> float:
         """
-        Calculates the average distance-efficiency of the all routes in the RouteSet.
+        Calculates the average distance-efficiency of the all routes in the RouteList.
         :return: The average Location density of the routes (num_locations / route_distance).
         """
         density_list = []
         for route in self._route_set:
-            location_density = len(route) / RouteSet.__get_route_distance(route)
+            location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
         return sum(density_list) / len(density_list)
@@ -295,12 +322,12 @@ class RouteSet:
         ideal_distance = longest_distance * 2  # Round-trip to the furthest Location
 
         # Calculate deviance of the route
-        deviance = RouteSet.__get_route_distance(route) - ideal_distance
+        deviance = RouteList.get_route_distance(route) - ideal_distance
 
         return deviance
 
     @staticmethod
-    def __get_route_distance(route: list[Location]) -> float:
+    def get_route_distance(route: list[Location]) -> float:
         """Calculates the total distance of the route in miles."""
         distance = 0.0
         prev_location = None
