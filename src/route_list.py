@@ -131,19 +131,33 @@ class RouteList:
 
         # Create a list of all routes from both parents and calculate their location densities
         all_routes = list(self._route_set) + list(other_parent._route_set)
-        route_densities = [(route, route_fitness(route)) for route in all_routes]
+        route_fitnesses = [(route, route_fitness(route)) for route in all_routes]
 
-        # Sort the list of routes in descending order of location density
-        route_densities.sort(key=lambda x: x[1], reverse=True)
+        # Calculate the total fitness of all routes
+        total_fitness = sum(fitness for _, fitness in route_fitnesses)
+
+        # Create a list to store the offspring's routes
+        offspring_routes = []
+
+        # While we need more routes for the offspring
+        while len(offspring_routes) < len(self._route_set):
+            # Generate a random number between 0 and the total fitness
+            pick = random.uniform(0, total_fitness)
+            current = 0
+
+            # Go through the routes
+            for route, fitness in route_fitnesses:
+                current += fitness
+                if current > pick:
+                    # If the current sum of fitness is greater than the pick, select this route
+                    offspring_routes.append(route)
+                    break
 
         # Initialize an empty set to store the locations that have already been added to the offspring's routes
         added_locations = set()
 
-        # Initialize an empty list to store the offspring's routes
-        offspring_routes = []
-
         # Iterate over the sorted list of routes
-        for route, _ in route_densities:
+        for route, _ in route_fitnesses:
             # Stop adding routes if offspring has same number of routes as parents
             if len(offspring_routes) >= len(self._route_set):
                 break
@@ -166,7 +180,7 @@ class RouteList:
         for location in all_locations:
             # If the Location is not in the set of added locations, add it to the least dense route in the offspring
             if location not in added_locations and location != hub_location:
-                least_dense_route = min(offspring_routes, key=location_density)
+                least_dense_route = min(offspring_routes, key=route_fitness)
                 least_dense_route.insert(-1, location)  # Insert before the last HUB location
                 added_locations.add(location)
 
