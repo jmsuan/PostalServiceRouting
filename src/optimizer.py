@@ -2,7 +2,7 @@ import random
 
 from package import Package
 from location import Location
-from route_set import RouteSet
+from route_list import RouteList
 
 
 class Optimizer:
@@ -42,12 +42,12 @@ class Optimizer:
     """
     @staticmethod
     def generate_routes(
-            hub: Location,
             all_location_list: list[Location],
-            total_generations: int,
+            hub: Location,
             num_routes: int,
+            total_generations: int,
             population_size: int
-    ) -> RouteSet:
+    ) -> RouteList:
         """
         Generates a set of routes that aim to minimize the total mileage of the Trucks. The routes are generated using a
         genetic algorithm that aims to minimize the total distance travelled by the Trucks. The algorithm will generate
@@ -56,9 +56,9 @@ class Optimizer:
         :param hub: The central location that the routes will be generated from and return to.
         :param all_location_list: The list of all Locations that need to be visited by the Trucks.
         :param total_generations: The number of generations that the genetic algorithm will run for.
-        :param num_routes: The number of routes to be in the RouteSet.
-        :param population_size: The number of RouteSets to be in each generation.
-        :return: A RouteSet object that contains the routes (lists of Locations) that the Trucks will follow.
+        :param num_routes: The number of routes to be in the RouteList.
+        :param population_size: The number of RouteLists to be in each generation.
+        :return: A RouteList object that contains the routes (lists of Locations) that the Trucks will follow.
         """
         if num_routes < 1:
             raise ValueError("num_routes must be greater than 0")
@@ -74,18 +74,18 @@ class Optimizer:
 
         # Generate initial population
         current_generation = []
-        for _ in range(population_size):  # Create a RouteSet for each member of the population
-            route_set = set()
+        for _ in range(population_size):  # Create a RouteList for each member of the population
+            route_set = []
             random.shuffle(locations_to_visit)  # Shuffle the locations
             for i in range(num_routes):
                 route = locations_to_visit[i::num_routes]  # Slice the list of locations into num_routes parts
                 route.insert(0, hub)
                 route.append(hub)
-                route_set.add(route)
-            # Convert the set of routes to a RouteSet and add it to the first generation
-            current_generation.append(RouteSet(route_set))
+                route_set.append(route)
+            # Convert the set of routes to a RouteList and add it to the first generation
+            current_generation.append(RouteList(route_set))
 
-        # Calculate fitness for each RouteSet the first generation
+        # Calculate fitness for each RouteList the first generation
         fitness_scores = []
         for route_set in current_generation:
             route_fitness = Optimizer.__fitness(route_set, hub)
@@ -94,30 +94,37 @@ class Optimizer:
         # Run genetic algorithm
         generations_left = total_generations
         while not Optimizer.__terminate(generations_left, fitness_scores):
-            # Select the best RouteSets
-            best_route_sets = Optimizer.__select(current_generation, fitness_scores)
+            # Select the best RouteLists
+            best_route_lists = Optimizer.__select(current_generation, fitness_scores)
 
-            # Create new RouteSets using crossover and mutation
+            # Create new RouteLists using crossover and mutation
             new_generation = []
             for i in range(population_size):
-                parent_1 = random.choice(best_route_sets)
-                parent_2 = random.choice(best_route_sets)
+                if i < len(best_route_lists) // 20:  # Keep the best 5% of the RouteLists
+                    new_generation.append(best_route_lists[i])
+                    continue  # Skip the best RouteLists
+                parent_1 = random.choice(best_route_lists)
+                parent_2 = random.choice(best_route_lists)
                 offspring = Optimizer.__crossover(parent_1, parent_2, hub)
-                if random.random() < 0.2:  # 20% chance of mutation
+                if random.random() < 0.9:  # 90% chance of mutation
                     offspring = Optimizer.__mutate(offspring)
                 new_generation.append(offspring)
 
-            # Calculate fitness for each RouteSet in the new generation
+            # Calculate fitness for each RouteList in the new generation
             fitness_scores = []
             for route_set in new_generation:
                 route_fitness = Optimizer.__fitness(route_set, hub)
                 fitness_scores.append(route_fitness)
 
+            # Print the fitness scores of the current generation
+            print(f"Generation {total_generations - generations_left + 1} "
+                  f"fitness scores: {sorted(fitness_scores, reverse=True)}")
+
             # Update the current generation
             current_generation = new_generation
             generations_left -= 1
 
-        # Select the best RouteSet from the final generation
+        # Select the best RouteList from the final generation
         best_route_set = Optimizer.__select(current_generation, fitness_scores)[0]
 
         return best_route_set
@@ -142,11 +149,11 @@ class Optimizer:
         pass
 
     @staticmethod
-    def __fitness(route_set: RouteSet, hub_location: Location) -> float:
+    def __fitness(route_set: RouteList, hub_location: Location) -> float:
         """
         Calculate the fitness of a route. The fitness of a route is scored based on numerous factors:
 
-        - The total distance travelled by all routes in the RouteSet.
+        - The total distance travelled by all routes in the RouteList.
         - The maximum number of locations in a route.
         - The median number of locations in a route.
         - The maximum deviation from a straight line from the hub to the furthest location on a route.
@@ -155,9 +162,9 @@ class Optimizer:
         - The median location density of all routes.
         - The average location density of all routes.
 
-        :param route_set: The RouteSet to calculate the fitness of.
+        :param route_set: The RouteList to calculate the fitness of.
         :param hub_location: The central location that the routes will be generated from and return to.
-        :return: The fitness score of the RouteSet.
+        :return: The fitness score of the RouteList.
         """
         # Get all factors
         total_distance = route_set.get_total_distance()
@@ -170,14 +177,14 @@ class Optimizer:
         avg_density = route_set.get_avg_locations_per_mile()
 
         # Apply weights to each factor
-        distance_weight = -0.5  # Negative because we want to minimize distance
+        distance_weight = -2.0  # Negative because we want to minimize distance
         max_route_length_weight = 0.1
         med_route_length_weight = 0.1
-        max_deviation_weight = 0.1
-        avg_deviation_weight = 0.1
-        max_density_weight = 0.05
-        med_density_weight = 0.05
-        avg_density_weight = 0.05
+        max_deviation_weight = 5.0
+        avg_deviation_weight = 2.0
+        max_density_weight = 0.1
+        med_density_weight = 3.0
+        avg_density_weight = 1.0
 
         # Calculate fitness
         fitness = (total_distance * distance_weight +
@@ -192,14 +199,14 @@ class Optimizer:
         return fitness
 
     @staticmethod
-    def __select(routes: list[RouteSet], fitness_scores: list[float]) -> list[RouteSet]:
+    def __select(routes: list[RouteList], fitness_scores: list[float]) -> list[RouteList]:
         """
-        Select the best RouteSets from a generation based on their fitness scores. Half of the RouteSets will be
+        Select the best RouteLists from a generation based on their fitness scores. Half of the RouteLists will be
         selected to be used as parents for the next generation.
 
-        :param routes: The RouteSets to select from.
-        :param fitness_scores: The fitness scores of the RouteSets.
-        :return: The best RouteSets from the generation.
+        :param routes: The RouteLists to select from.
+        :param fitness_scores: The fitness scores of the RouteLists.
+        :return: The best RouteLists from the generation.
         """
         # Sort the routes by their fitness scores
         sorted_routes = sorted(zip(routes, fitness_scores), key=lambda x: x[1], reverse=True)
@@ -230,25 +237,25 @@ class Optimizer:
         return False
 
     @staticmethod
-    def __mutate(route_set: RouteSet) -> RouteSet:
+    def __mutate(route_set: RouteList) -> RouteList:
         """
-        Mutate a RouteSet to create a new RouteSet with a slightly different set of routes.
+        Mutate a RouteList to create a new RouteList with a slightly different set of routes.
 
-        :param route_set: The RouteSet to mutate.
-        :return: A new RouteSet that is a mutation of the original RouteSet.
+        :param route_set: The RouteList to mutate.
+        :return: A new RouteList that is a mutation of the original RouteList.
         """
         mutation = route_set.mutate()
         return mutation
 
     @staticmethod
-    def __crossover(route_set_1: RouteSet, route_set_2: RouteSet, hub_location: Location) -> RouteSet:
+    def __crossover(route_set_1: RouteList, route_set_2: RouteList, hub_location: Location) -> RouteList:
         """
-        Create offspring from two RouteSets using crossover.
+        Create offspring from two RouteLists using crossover.
 
-        :param route_set_1: The first parent RouteSet
-        :param route_set_2: The second parent RouteSet
+        :param route_set_1: The first parent RouteList
+        :param route_set_2: The second parent RouteList
         :param hub_location: The central location that the routes will be generated from and return to.
-        :return: A new RouteSet that is the offspring of the two parent RouteSets.
+        :return: A new RouteList that is the offspring of the two parent RouteLists.
         """
-        offspring = RouteSet.offspring(route_set_1, route_set_2, hub_location)
+        offspring = RouteList.offspring(route_set_1, route_set_2, hub_location)
         return offspring

@@ -2,6 +2,8 @@ import csv
 from datetime import datetime
 from package import Package
 from location import Location
+from optimizer import Optimizer
+from route_list import RouteList
 
 
 class Interface:
@@ -365,27 +367,99 @@ class Interface:
         return route_list
 
     @staticmethod
-    def create_routes() -> list[list[Location]]:
+    def create_routes(location_list: list[Location], hub: Location) -> RouteList:
         """
         Asks the user for the parameters to create routes and returns the list of routes generated from a genetic
         algorithm.
 
         :return: A list of routes (list of Locations) that were created from the user input.
         """
+        num_routes = None
+        num_generations = None
+        population_size = None
         parameters_finalized = False
         while parameters_finalized is False:
+            # Print a newline and header for readability
+            print()
+            print("Genetic Algorithm Parameters:")
+
             # Ask user for number of routes to create
             num_routes = int(input("How many routes would you like to create? "))
 
             # Ask user for the number of generations to run the genetic algorithm
-            num_generations = int(input("How many generations would you like to run the genetic algorithm? "))
+            num_generations = int(input("How many generations would you like to run the genetic algorithm for? "))
 
             # Ask user for the population size
-            population_size = int(input("What would you like the population size to be? "))
+            population_size = int(input("What would you like the population size to be for each generation? "))
 
-            # Ask user for the mutation rate
-            mutation_rate = float(input("What would you like the mutation rate to be? "))
+            # Ask user to confirm parameters
+            print(f"Number of routes: {num_routes}")
+            print(f"Number of generations: {num_generations}")
+            print(f"Population size: {population_size}")
+            print("Are these parameters correct?")
+            confirm = input("Enter 'y' or 'n' or 'abort': ").strip().lower()
+            if confirm == "y":
+                assert num_routes is not None
+                assert num_generations is not None
+                assert population_size is not None
+                parameters_finalized = True
+            elif confirm == "abort":
+                print("Exiting program...")
+                exit()
 
-            # Ask user for the number of parents to keep
-            num_parents = int(input("How many parents would you like to keep? "))
+        # Create routes using genetic algorithm
+        print("\nCreating routes...")
+        route_list = Optimizer.generate_routes(location_list, hub, num_routes, num_generations, population_size)
+        print("Routes created successfully!\n")
 
+        # Save routes to a CSV file
+        Interface.save_routes(route_list.get_routes())
+
+        return route_list
+
+    @staticmethod
+    def print_route_statistics(route_list: list[list[Location]]):
+        """
+        Prints statistics for a list of routes.
+
+        :param route_list: A list of routes (list of Locations).
+        :return: This function does not return a value.
+        """
+        # Print all routes
+        print("\nAll Routes:")
+        for i in range(len(route_list)):
+            print(f"{i + 1}: {route_list[i]}")
+
+        # Get statistics for each route
+        route_info = []
+        for i in range(len(route_list)):
+            route_id = i + 1
+            num_locations = len(route_list[i])
+            total_distance = RouteList.get_route_distance(route_list[i])
+            location_density = total_distance / num_locations
+            route_info.append([route_id, num_locations, location_density, total_distance])
+
+        # Convert route list to a RouteList object
+        converted_route_list = RouteList(route_list)
+
+        # Print statistics for all routes combined
+        print("\nRouteList Statistics:")
+        route_stat_header = [("Route:", "Number of Locations:", "Location Density:", "Total Distance:")]
+        Interface.fancy_table(route_info, route_stat_header)
+        print(f"Total number of routes: {len(converted_route_list.get_routes())}")
+        print(f"Total number of unique locations: {len(converted_route_list.get_all_locations())}")
+        print(f"Total distance of all routes combined: {converted_route_list.get_total_distance()} miles")
+
+    @staticmethod
+    def save_routes(route_list: list[list[Location]]):
+        """
+        Saves a list of routes to a CSV file.
+        :param route_list: A list of routes (list of Locations).
+        :return: This function does not return a value.
+        """
+        with open("data/saved_routes.csv", "w", newline='') as csvfile:
+            file_writer = csv.writer(csvfile)
+            for route in route_list:
+                route_names = [location.get_name() for location in route]
+                file_writer.writerow(route_names)
+        print("Routes saved successfully!")

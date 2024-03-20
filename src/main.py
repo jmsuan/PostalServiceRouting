@@ -9,7 +9,7 @@ print()
 
 # Import location info (creates Location objects and sets distances)
 raw_locations = Interface.read_csv("data/distance_info.csv")
-Interface.list_to_location_list(raw_locations)
+location_list = Interface.list_to_location_list(raw_locations)
 
 # Set the HUB for this instance
 wgu = Location.get_location_by_name("Western Governors University")
@@ -29,12 +29,12 @@ if saved_routes_exist:
     use_saved_routes = input("Enter 'y' or 'n': ").strip().lower()
     if use_saved_routes == "n":
         print("Are you sure you want to create new routes? This will overwrite the saved routes.\n"
-              "(Creating routes may take a lot of compute power depending on the what parameters you enter for the"
-              "genetic algorithm!)")
+              "(Creating routes might take a large amount of memory or compute power depending on the what parameters "
+              "you enter for the genetic algorithm!)")
         confirm = input("Enter 'y' or 'n': ").strip().lower()
         if confirm == "y":
             # Ask user for parameters to create routes
-            route_list = Interface.create_routes()
+            route_list = list(Interface.create_routes(location_list, wgu).get_routes())
         else:
             print("Using saved routes...")
             route_list = Interface.list_to_route_list(Interface.read_csv("data/saved_routes.csv"))
@@ -47,13 +47,13 @@ else:
     create_new_routes = input("Enter 'y' or 'n': ").strip().lower()
     if create_new_routes == "y":
         # Ask user for parameters to create routes
-        route_list = Interface.create_routes()
+        route_list = list(Interface.create_routes(location_list, wgu).get_routes())
     else:
         print("Exiting program...")
         exit()
 
 # Print all route statistics
-Interface.print_route_statistics(route_list)
+Interface.print_route_statistics(list(route_list))
 """
 # Create custom HashTable object to hold packages
 pkg_table = HashTable(50)
