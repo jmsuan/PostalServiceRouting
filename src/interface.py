@@ -384,16 +384,18 @@ class Interface:
             print("Genetic Algorithm Parameters:")
 
             # Ask user for number of routes to create
-            num_routes = int(input("How many routes would you like to create? "))
+            num_routes = int(input("How many routes would you like to create? (min: 1) "))
 
             # Ask user for the number of generations to run the genetic algorithm
-            num_generations = int(input("How many generations would you like to run the genetic algorithm for? "))
+            num_generations = int(input("How many generations would you like to run the genetic algorithm for? "
+                                        "(min: 50) "))
 
             # Ask user for the population size
-            population_size = int(input("What would you like the population size to be for each generation? "))
+            population_size = int(input("What would you like the population size to be for each generation? "
+                                        "(min: 10) "))
 
             # Ask user to confirm parameters
-            print(f"Number of routes: {num_routes}")
+            print(f"\nNumber of routes: {num_routes}")
             print(f"Number of generations: {num_generations}")
             print(f"Population size: {population_size}")
             print("Are these parameters correct?")

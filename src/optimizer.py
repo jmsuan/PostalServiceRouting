@@ -1,5 +1,4 @@
 import copy
-import math
 import random
 
 from package import Package
@@ -64,8 +63,8 @@ class Optimizer:
         """
         if num_routes < 1:
             raise ValueError("num_routes must be at least 1")
-        if population_size < 5:
-            raise ValueError("population_size must at least 5")
+        if population_size < 10:
+            raise ValueError("population_size must at least 10")
         if total_generations < 50:
             raise ValueError("total_generations must be at least 50 to ensure the algorithm has enough time to "
                              "converge on a solution.")
@@ -75,7 +74,7 @@ class Optimizer:
         locations_to_visit.remove(hub)
 
         # Generate initial population
-        current_generation = []
+        current_generation = set()
         for _ in range(population_size):  # Create a RouteList for each member of the population
             route_list = []
             random.shuffle(locations_to_visit)  # Shuffle the locations
@@ -85,63 +84,110 @@ class Optimizer:
                 route.append(hub)
                 route_list.append(route)
             # Convert the set of routes to a RouteList and add it to the first generation
-            current_generation.append(RouteList(route_list))
+            current_generation.add(RouteList(route_list))
 
-        # Calculate fitness for each RouteList the first generation
+        # Calculate fitness for each RouteList in the first generation
         fitness_scores = []
-        for route_list in current_generation:
-            route_fitness = Optimizer.__fitness(route_list, hub)
-            fitness_scores.append(route_fitness)
+        for item in current_generation:
+            route_fitness = Optimizer.__fitness(item, hub)
+            fitness_scores.append((item, route_fitness))
 
         # Run genetic algorithm
         generations_left = total_generations
         while not Optimizer.__terminate(generations_left, fitness_scores):
-            # Calculate fitness for each RouteList in the new generation
-            fitness_scores = []
-            for route_list in current_generation:
-                route_fitness = Optimizer.__fitness(route_list, hub)
-                fitness_scores.append(route_fitness)
+            # Save backup of the old fitness scores to ensure that elitism is working
+            old_fitness_scores = fitness_scores.copy()
 
-            # Print the fitness scores of the current generation
-            print(f"Generation {total_generations - generations_left + 1} "
-                  f"top fitness scores: {sorted(fitness_scores, reverse=True)[:5]}")
-
-            # Elitism: Keep the best RouteLists from the previous generation
-            elitism_size = 2
+            # Print the top 5 fitness scores of the current generation
+            print(f"Generation {total_generations - generations_left + 1}'s top 10 fitness scores: ", end="")
+            for _, fitness in sorted(old_fitness_scores, key=lambda x: x[1], reverse=True)[:10]:
+                print(f"\t{round(fitness, 5)}", end="")
+            print()
 
             # Select the best RouteLists
-            sorted_best_routes = sorted(zip(current_generation, fitness_scores), key=lambda x: x[1], reverse=True)
-            best_routes_ordered = [route for route, _ in sorted_best_routes]
+            sorted_best_route_lists = sorted(old_fitness_scores, key=lambda x: x[1], reverse=True)
+            best_route_lists_ordered = [routes for routes, _ in sorted_best_route_lists]
+            best_routes_backup = best_route_lists_ordered.copy()
 
-            # Preserve elites by directly copying the best RouteLists to the next generation
-            elite_routes = best_routes_ordered[:elitism_size].copy()
+            # Preserve elites by overwriting RouteLists into the next generation
+            elitism_size = 5
+            elite_route_lists = best_routes_backup[:elitism_size]
+            new_generation = set(elite_route_lists)
 
             # Create new RouteLists using crossover and mutation
-            new_generation = elite_routes.copy()
-            for i in range(population_size):
-                if i < elitism_size:  # Don't alter the elites
-                    continue  # Skip to the next iteration
+            while len(new_generation) < population_size:
+                # Select parents for crossover
                 parent_1 = random.choice(
-                    [route for route in best_routes_ordered if route not in elite_routes]
-                )
+                    [route for route in best_route_lists_ordered if route not in elite_route_lists])
                 parent_2 = random.choice(
-                    [route for route in best_routes_ordered if route not in elite_routes and route != parent_1]
-                )
+                    [route for route in best_route_lists_ordered
+                        if route != parent_1 and route not in elite_route_lists])
+
+                offspring = RouteList([])
                 # Choose to crossover or mutate
                 if random.random() < 0.5:  # 50% chance of crossover
                     offspring = Optimizer.__crossover(parent_1, parent_2, hub)
                     if random.random() < 0.8:  # 80% chance of mutation assuming crossover
                         offspring = Optimizer.__mutate(offspring)
                 else:  # 50% chance of mutation
-                    offspring = Optimizer.__mutate(random.choice(best_routes_ordered))
-                new_generation.append(offspring)
+                    offspring = Optimizer.__mutate(random.choice(best_route_lists_ordered))
+
+                if offspring == RouteList([]):
+                    raise ValueError("Child RouteList was not returned/assigned properly.")
+
+                if any(offspring == routes for routes in new_generation):
+                    # If the offspring is already in the new_generation set, mutate into a new offspring
+                    offspring = Optimizer.__mutate(offspring)
+
+                # If the offspring is better than both parents, add it to the new generation
+                if (offspring.get_fitness(hub) > parent_1.get_fitness(hub) and
+                        offspring.get_fitness(hub) > parent_2.get_fitness(hub)):
+                    new_generation.add(offspring)
+                # If the offspring is not better than both parents, add the better parent to the new generation
+                elif parent_1.get_fitness(hub) > parent_2.get_fitness(hub):
+                    new_generation.add(parent_1)
+                else:
+                    new_generation.add(parent_2)
+
+            # Add elites to the new generation again
+            new_generation = new_generation.union(elite_route_lists)
+
+            if len(new_generation) > population_size:
+                # Remove the worst RouteLists from the new generation
+                sorted_new_generation = sorted([(route, Optimizer.__fitness(route, hub)) for route in new_generation],
+                                               key=lambda x: x[1], reverse=True)
+                while len(new_generation) > population_size:
+                    try:
+                        new_generation.remove(sorted_new_generation.pop()[0])
+                    except KeyError:
+                        continue
+
+            # Calculate fitness for each RouteList in the new generation
+            fitness_scores = []
+            for item in new_generation:
+                route_fitness = Optimizer.__fitness(item, hub)
+                fitness_scores.append((item, route_fitness))
+
+            # Check if the fitness scores are decreasing
+            new_scores = [score for _, score in fitness_scores]
+            old_scores = [score for _, score in old_fitness_scores]
+            if max(new_scores) < max(old_scores):
+                raise ValueError(f"Fitness scores are decreasing. This should not happen because of elitism.\n"
+                                 f"Old scores: {sorted(old_scores, reverse=True)}\n"
+                                 f"New scores: {sorted(new_scores, reverse=True)}")
+
+            # Check if the new generation is the same size as the previous
+            if len(new_generation) != population_size:
+                raise ValueError(f"New generation is a different size than the previous.\n"
+                                 f"Old generation: {len(current_generation)}, {current_generation}\n"
+                                 f"New generation: {len(new_generation)}, {new_generation}")
 
             # Update the current generation
             current_generation = new_generation
             generations_left -= 1
 
         # Select the best RouteList from the final generation
-        best_route_set = Optimizer.__select(current_generation, fitness_scores)[0]
+        best_route_set = max(fitness_scores, key=lambda x: x[1])[0]
 
         return best_route_set
 
@@ -185,31 +231,7 @@ class Optimizer:
         return route_list.get_fitness(hub_location)
 
     @staticmethod
-    def __select(routes_list: list[RouteList], fitness_scores: list[float]) -> list[RouteList]:
-        """
-        Select the best RouteLists from a generation based on their fitness scores. Half of the RouteLists will be
-        selected to be used as parents for the next generation.
-
-        :param routes_list: The RouteLists to select from.
-        :param fitness_scores: The fitness scores of the RouteLists.
-        :return: The best 50% of RouteLists from the generation.
-        """
-        # Sort the routes by their fitness scores
-        sorted_routes = sorted(zip(routes_list, fitness_scores), key=lambda x: x[1], reverse=True)
-
-        # Select the best half of the routes
-        num_to_keep = math.ceil(len(sorted_routes) / 2)
-
-        # Return the best RouteLists
-        best_route_lists = []
-        for i in range(num_to_keep):
-            route_to_keep, _ = sorted_routes[i]
-            best_route_lists.append(route_to_keep)
-
-        return best_route_lists
-
-    @staticmethod
-    def __terminate(generations: int, fitness_scores: list[float]) -> bool:
+    def __terminate(generations: int, fitness_scores: list[tuple[RouteList, float]]) -> bool:
         """
         Determine if the genetic algorithm should terminate based on the number of generations and the fitness scores.
 
@@ -236,7 +258,8 @@ class Optimizer:
         :param route_set: The RouteList to mutate.
         :return: A new RouteList that is a mutation of the original RouteList.
         """
-        mutation = route_set.mutate()
+        new_route_set = copy.copy(route_set)
+        mutation = new_route_set.mutate()
         return mutation
 
     @staticmethod
@@ -249,5 +272,7 @@ class Optimizer:
         :param hub_location: The central location that the routes will be generated from and return to.
         :return: A new RouteList that is the offspring of the two parent RouteLists.
         """
-        offspring = RouteList.offspring(route_set_1, route_set_2, hub_location)
+        new_route_set_1 = copy.copy(route_set_1)
+        new_route_set_2 = copy.copy(route_set_2)
+        offspring = new_route_set_1.offspring(new_route_set_2, hub_location)
         return offspring

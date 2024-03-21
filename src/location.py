@@ -13,6 +13,17 @@ class Location:
         self._distance_table = {}
         Location._all_locations.append(self)
 
+    def __str__(self):
+        """Returns a string representation of the Location."""
+        '''return (f"[{self.get_name()[:3].strip()}, "
+                f"{self.get_zip()}]")  # Shorter version for debugging'''
+        return (f"[{self.get_name()}, "
+                f"{self.get_address()}, "
+                f"({self.get_zip()})]")
+
+    def __repr__(self):
+        return self.__str__()
+
     def add_distance(self, location: Location, miles_to_drive: float):
         self._distance_table[location] = miles_to_drive
         location._distance_table[self] = miles_to_drive  # Distance assumed to be same both ways
@@ -32,16 +43,6 @@ class Location:
 
     def get_name(self) -> str:
         return self._name
-
-    def __str__(self):
-        """return (f"[{self.get_name()}, "
-                f"{self.get_address()}, "
-                f"({self.get_zip()})]")"""
-        return (f"[{self.get_name()[:3].strip()}, "
-                f"{self.get_zip()}]")  # Shorter version for debugging
-
-    def __repr__(self):
-        return self.__str__()
 
     @staticmethod
     def get_location_by_address(street_address: str, zip_code: str) -> Location:

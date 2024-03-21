@@ -23,6 +23,15 @@ class RouteList:
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, other: RouteList) -> bool:
+        for route in self._route_list:
+            if route not in other._route_list:
+                return False
+        return True
+
+    def __hash__(self):
+        return hash(str(self))
+
     def mutate(self) -> RouteList:
         """
         Change this RouteList slightly such that some neighboring Location(s) could be "swapped" between their
@@ -187,15 +196,15 @@ class RouteList:
         med_density = self.get_med_locations_per_mile()
         avg_density = self.get_avg_locations_per_mile()
 
-        # Apply weights to each factor (negative if we want to minimize, positive if we want to maximize)
-        distance_weight = -1.0
-        max_route_length_weight = -1.0
-        med_route_length_weight = -1.0
-        max_deviation_weight = -1.0
-        avg_deviation_weight = -1.0
-        max_density_weight = 300.0
-        med_density_weight = 200.0
-        avg_density_weight = 40.0
+        # Apply weights to each metric (negative if we want to minimize, positive if we want to maximize)
+        distance_weight = -1
+        max_route_length_weight = -1
+        med_route_length_weight = -1
+        max_deviation_weight = -1
+        avg_deviation_weight = -1
+        max_density_weight = 300
+        med_density_weight = 200
+        avg_density_weight = 40
 
         # Calculate fitness
         fitness = (total_distance * distance_weight +
@@ -207,7 +216,7 @@ class RouteList:
                    med_density * med_density_weight +
                    avg_density * avg_density_weight)
 
-        return fitness
+        return fitness + 1111  # Add 1111 to ensure that the fitness is usually positive
 
     @staticmethod
     def __get_route_fitness(route: list[Location], hub_location: Location) -> float:
@@ -286,7 +295,7 @@ class RouteList:
 
     def get_max_route_length(self) -> int:
         """
-        :return: The number of Locations in the longest route that's part of the set.
+        :return: The number of Locations in the longest route that's part of the RouteList.
         """
         max_length = -1
         for route in self._route_list:
