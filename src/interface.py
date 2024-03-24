@@ -20,8 +20,8 @@ class Interface:
     @staticmethod
     def read_csv(filepath: str) -> list[list]:
         file_rows = []
-        with open(filepath, newline='') as csvfile:
-            file_reader = csv.reader(csvfile)
+        with open(filepath, newline='') as csv_file:
+            file_reader = csv.reader(csv_file)
             for row in file_reader:
                 file_rows.append(row)
             return file_rows
@@ -457,8 +457,8 @@ class Interface:
         :param route_list: A list of routes (list of Locations).
         :return: This function does not return a value.
         """
-        with open("data/saved_routes.csv", "w", newline='') as csvfile:
-            file_writer = csv.writer(csvfile)
+        with open("data/saved_routes.csv", "w", newline='') as csv_file:
+            file_writer = csv.writer(csv_file)
             for route in route_list:
                 route_names = [location.get_name() for location in route]
                 file_writer.writerow(route_names)

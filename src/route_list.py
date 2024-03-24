@@ -21,7 +21,7 @@ class RouteList:
         :return: A new RouteList that can be considered a child of this single parent RouteList.
         """
         # Save routes into an iterable list
-        new_list = list(self._route_set)
+        new_list = self._route_set.copy()
         num_routes = len(new_list)
 
         # For each route
@@ -118,10 +118,11 @@ class RouteList:
             density = location_density(route)
 
             # Apply weights to each factor
-            distance_weight = -0.3  # Negative because we want to minimize distance
-            num_locations_weight = -10.0  # Negative because we want to minimize the number of locations
-            deviance_weight = 0.5
-            density_weight = 1.0
+            # A negative weight means that we want to minimize the value.
+            distance_weight = -0.3
+            num_locations_weight = -6.0
+            deviance_weight = -0.5
+            density_weight = 5.0
 
             # Calculate fitness
             fitness = (total_distance * distance_weight) + (num_locations * num_locations_weight) + (
@@ -130,7 +131,7 @@ class RouteList:
             return fitness
 
         # Create a list of all routes from both parents and calculate their location densities
-        all_routes = list(self._route_set) + list(other_parent._route_set)
+        all_routes = (self._route_set + other_parent._route_set).copy()
         route_densities = [(route, route_fitness(route)) for route in all_routes]
 
         # Sort the list of routes in descending order of location density
@@ -336,6 +337,7 @@ class RouteList:
                 prev_location = location
             else:
                 distance += location.distance_from(prev_location)
+                prev_location = location
         return distance
 
     @staticmethod

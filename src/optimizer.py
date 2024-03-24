@@ -1,4 +1,5 @@
 import random
+import copy
 
 from package import Package
 from location import Location
@@ -11,7 +12,7 @@ class Optimizer:
 
     First, the Optimizer generates routes from the hub, using the list of Locations.
 
-    - The routes aim to achieve optimal milage by creating static routes that hit the most Locations with the smallest
+    - The routes aim to achieve optimal mileage by creating static routes that hit the most Locations with the smallest
       total distance travelled. This means that a single route ideally follows a straight line out from the hub to the
       furthest destination, then comes back (stopping to deliver packages to locations along the line).
     - However, in practice, the Locations that need to be delivered to are never all located in a straight line. So this
@@ -37,8 +38,8 @@ class Optimizer:
       characteristics to be calculated first.)
 
     The Optimizer can then assign the packages to the Trucks in the order of their priority. The Trucks will then follow
-    the routes that were generated earlier, and deliver the packages in the order that they were assigned, but only if
-    the package is on the route that the Truck is following.
+    the routes that were generated earlier, and deliver the packages in the order that they appear on the route, but
+    only if the package is on the route that the Truck is following.
     """
     @staticmethod
     def generate_routes(
@@ -62,8 +63,8 @@ class Optimizer:
         """
         if num_routes < 1:
             raise ValueError("num_routes must be greater than 0")
-        if population_size < 1:
-            raise ValueError("population_size must be greater than 0")
+        if population_size < 50:
+            raise ValueError("population_size must be at least 50")
         if total_generations < 50:
             raise ValueError("total_generations must be at least 50 to ensure the algorithm has enough time to "
                              "converge on a solution.")
@@ -95,20 +96,52 @@ class Optimizer:
         generations_left = total_generations
         while not Optimizer.__terminate(generations_left, fitness_scores):
             # Select the best RouteLists
-            best_route_lists = Optimizer.__select(current_generation, fitness_scores)
+            best_route_lists_sorted = Optimizer.__select(current_generation, fitness_scores)
+
+            # Implement elitism to keep a certain number of the best solutions
+            elitism_size = 5
+            elite_pool = best_route_lists_sorted[0:elitism_size].copy()
 
             # Create new RouteLists using crossover and mutation
             new_generation = []
             for i in range(population_size):
-                if i < len(best_route_lists) // 20:  # Keep the best 5% of the RouteLists
-                    new_generation.append(best_route_lists[i])
+                # Keep the elite RouteLists
+                if i < elitism_size:
+                    new_generation.append(RouteList(RouteList.get_routes(best_route_lists_sorted[i]).copy()))
+                    continue
+
+                # Choose parents for crossover
+                if random.random() < 0.4:  # 40% chance of choosing a good solution to evolve
+                    parent_1 = RouteList(RouteList.get_routes(random.choice(elite_pool)).copy())
+                else:
+                    parent_1 = RouteList(RouteList.get_routes(random.choice(best_route_lists_sorted)).copy())
+                parent_2 = RouteList(RouteList.get_routes(
+                    random.choice([routes for routes in best_route_lists_sorted if routes != parent_1])).copy())
+
+                # Make new RouteList to add to generation
+                offspring = RouteList(RouteList.get_routes(parent_1).copy())
+                if random.random() < 0.4:  # 40% chance of crossover
+                    offspring = Optimizer.__crossover(parent_1, parent_2, hub)
+                    if random.random() < 0.4:
+                        offspring = Optimizer.__mutate(offspring)  # 40% chance of mutation assuming crossover
+                else:
+                    offspring = Optimizer.__mutate(offspring)
+
+                # Add offspring to new generation
+                new_generation.append(offspring)
+
+            '''# Create new RouteLists using crossover and mutation
+            new_generation = []
+            for i in range(population_size):
+                if i < elitism_size:
+                    new_generation.append(best_route_lists_sorted[i])
                     continue  # Skip the best RouteLists
-                parent_1 = random.choice(best_route_lists)
-                parent_2 = random.choice(best_route_lists)
+                parent_1 = random.choice(best_route_lists_sorted)
+                parent_2 = random.choice(best_route_lists_sorted)
                 offspring = Optimizer.__crossover(parent_1, parent_2, hub)
                 if random.random() < 0.9:  # 90% chance of mutation
                     offspring = Optimizer.__mutate(offspring)
-                new_generation.append(offspring)
+                new_generation.append(offspring)'''
 
             # Calculate fitness for each RouteList in the new generation
             fitness_scores = []
@@ -178,12 +211,12 @@ class Optimizer:
 
         # Apply weights to each factor
         distance_weight = -2.0  # Negative because we want to minimize distance
-        max_route_length_weight = 0.1
-        med_route_length_weight = 0.1
-        max_deviation_weight = 5.0
-        avg_deviation_weight = 2.0
+        max_route_length_weight = -0.1
+        med_route_length_weight = -5.0
+        max_deviation_weight = -5.0
+        avg_deviation_weight = -2.0
         max_density_weight = 0.1
-        med_density_weight = 3.0
+        med_density_weight = 5.0
         avg_density_weight = 1.0
 
         # Calculate fitness
