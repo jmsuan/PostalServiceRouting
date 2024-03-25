@@ -1,5 +1,6 @@
 import random
-import copy
+import datetime
+from datetime import datetime
 
 from package import Package
 from location import Location
@@ -174,11 +175,26 @@ class Optimizer:
         - How many other high priority packages are nearby. (This is a second-pass priority, as it requires the other
           characteristics to be calculated first.)
 
-        :param package_list:
-        :return:
+        :param package_list: A list of Package objects to prioritize.
+        :return: A list of scores for each package in the package_list. The scores are in the same order as the
+                    package_list.
         """
-        # TODO: Implement
-        pass
+        # Initialize the list of priorities
+        priorities = []
+
+        # Calculate the priority for each package
+        for package in package_list:
+            priority = 0
+
+            # Calculate the priority based on the deadline
+            eod_time = datetime.strptime("11:59:59 PM", "%I:%M:%S %p")
+            deadline = package.get_deadline()
+            time_left = eod_time - deadline
+            priority += time_left.total_seconds()
+
+            priorities.append(priority)
+
+        return priorities
 
     @staticmethod
     def __fitness(route_set: RouteList, hub_location: Location) -> float:

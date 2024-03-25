@@ -3,6 +3,7 @@
 from hash_table import HashTable
 from interface import Interface
 from location import Location
+from optimizer import Optimizer
 
 # Print a new line for readability
 print()
@@ -83,3 +84,11 @@ for pkg in pkg_list:
 print("\nPackage Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
 
+# Tests TODO: remove
+deltas = Optimizer.prioritize_packages(pkg_table.values(pkg_ids))
+
+package_with_delta = []
+for i, package in enumerate(pkg_table.values(pkg_ids)):
+    package_with_delta.append([package, str(int(deltas[i]))])
+
+Interface.fancy_table(package_with_delta, [("Package", "Time Delta")])
