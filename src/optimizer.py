@@ -166,12 +166,13 @@ class Optimizer:
     def prioritize_packages(package_list: list[Package]) -> list[int]:
         """
         Assign package priorities based on multiple characteristics:
-            - The deadline of the package.
-            - Any special truck requirements (e.g. a package that needs to be delivered by a truck with a certain id).
-            - How distant it is  from the HUB. (This is to prioritize delivering the furthest packages first within a route,
-              which is beneficial to the total mileage if the Truck cannot deliver to all the locations on a route at once.)
-            - How many other high priority packages are nearby. (This is a second-pass priority, as it requires the other
-              characteristics to be calculated first.)
+
+        - The deadline of the package.
+        - Any special truck requirements (e.g. a package that needs to be delivered by a truck with a certain id).
+        - How distant it is  from the HUB. (This is to prioritize delivering the furthest packages first within a route,
+          which is beneficial to the total mileage if the Truck cannot deliver to all the locations on a route at once.)
+        - How many other high priority packages are nearby. (This is a second-pass priority, as it requires the other
+          characteristics to be calculated first.)
 
         :param package_list:
         :return:
