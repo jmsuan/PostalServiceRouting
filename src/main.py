@@ -89,6 +89,6 @@ deltas = Optimizer.prioritize_packages(pkg_table.values(pkg_ids))
 
 package_with_delta = []
 for i, package in enumerate(pkg_table.values(pkg_ids)):
-    package_with_delta.append([package, str(int(deltas[i]))])
+    package_with_delta.append([package, deltas[i]])
 
 Interface.fancy_table(package_with_delta, [("Package", "Time Delta")])

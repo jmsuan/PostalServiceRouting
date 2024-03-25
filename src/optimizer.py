@@ -32,7 +32,7 @@ class Optimizer:
     Next, the Optimizer generates "priorities" for each package. This takes into account the following characteristics:
 
     - The deadline of the package.
-    - Any special truck requirements (e.g. a package that needs to be delivered by a truck with a certain id).
+    - Any special delivery requirements (e.g. a package that needs to be delivered by a truck with a certain id).
     - How distant it is  from the HUB. (This is to prioritize delivering the furthest packages first within a route,
       which is beneficial to the total mileage if the Truck cannot deliver to all the locations on a route at once.)
     - How many other high priority packages are nearby. (This is a second-pass priority, as it requires the other
@@ -42,6 +42,7 @@ class Optimizer:
     the routes that were generated earlier, and deliver the packages in the order that they appear on the route, but
     only if the package is on the route that the Truck is following.
     """
+
     @staticmethod
     def generate_routes(
             all_location_list: list[Location],
@@ -169,7 +170,7 @@ class Optimizer:
         Assign package priorities based on multiple characteristics:
 
         - The deadline of the package.
-        - Any special truck requirements (e.g. a package that needs to be delivered by a truck with a certain id).
+        - Any special delivery requirements (e.g. a package that needs to be delivered by a truck with a certain id).
         - How distant it is  from the HUB. (This is to prioritize delivering the furthest packages first within a route,
           which is beneficial to the total mileage if the Truck cannot deliver to all the locations on a route at once.)
         - How many other high priority packages are nearby. (This is a second-pass priority, as it requires the other
@@ -186,11 +187,19 @@ class Optimizer:
         for package in package_list:
             priority = 0
 
-            # Calculate the priority based on the deadline
+            # Add to priority based on the deadline
             eod_time = datetime.strptime("11:59:59 PM", "%I:%M:%S %p")
             deadline = package.get_deadline()
             time_left = eod_time - deadline
-            priority += time_left.total_seconds()
+            priority += int(time_left.total_seconds()) // 60  # Add the deadline's "minutes before EOD" to the priority
+
+            # Add to priority based on special requirements
+            special_code = package.get_special_code()
+            if special_code is not None and special_code != "":
+                # If special_code is not None, it should be a list of strings.
+                assert isinstance(special_code, list) and all(isinstance(item, str) for item in special_code)
+                num_codes = len(special_code)
+                priority += num_codes * 50  # Add to priority proportional to how many special requirements there are
 
             priorities.append(priority)
 
