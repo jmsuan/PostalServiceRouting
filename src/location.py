@@ -7,11 +7,39 @@ class Location:
 
     def __init__(self, name: str, street_address: str, zip_code: str):
         """Instantiates a location that can store driving distances from other locations."""
+        # Contain all adjustments that need to be made to address strings in a function.
+
+        # Initialize the attributes and add self to the class list
         self._name = name.strip().title()
-        self._address = street_address.replace("Sta ", "Station ").strip().title()
+        self._address = Location.format_address(street_address)
         self._zip = zip_code.strip()
         self._distance_table = {}
         Location._all_locations.append(self)
+
+    @staticmethod
+    def format_address(address: str) -> str:
+        """Make all necessary adjustments to an address string as needed for consistency."""
+        address_to_adjust = address
+        address_to_adjust = address_to_adjust.replace(" Sta ", " Station ")
+        address_to_adjust = address_to_adjust.replace(" N ", " North ")
+        address_to_adjust = address_to_adjust.replace(" E ", " East ")
+        address_to_adjust = address_to_adjust.replace(" W ", " West ")
+        address_to_adjust = address_to_adjust.replace(" S ", " South ")
+
+        # Handle when the address ends with the cardinal direction
+        match address_to_adjust[-2:].lower():
+            case " n":
+                address_to_adjust = address_to_adjust[:-2] + " North"
+            case " e":
+                address_to_adjust = address_to_adjust[:-2] + " East"
+            case " w":
+                address_to_adjust = address_to_adjust[:-2] + " West"
+            case " s":
+                address_to_adjust = address_to_adjust[:-2] + " South"
+
+        # We could add support for converting NW/NE/SW etc., but that's beyond the scope of this project.
+
+        return address_to_adjust.strip().title()
 
     def add_distance(self, location: Location, miles_to_drive: float):
         self._distance_table[location] = miles_to_drive
@@ -44,6 +72,7 @@ class Location:
     @staticmethod
     def get_location_by_address(street_address: str, zip_code: str) -> Location:
         # Initialize search variables
+        street_address = Location.format_address(street_address)
         locations_found = 0
         found_location = None
 

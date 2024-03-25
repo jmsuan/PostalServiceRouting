@@ -134,7 +134,7 @@ class Interface:
         """
         header = [(
             "Pkg ID:",
-            "Address:",
+            "Delivery Address:",
             "City:",
             "State:",
             "Zip Code:",

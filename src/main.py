@@ -26,35 +26,44 @@ except FileNotFoundError:
 if saved_routes_exist:
     # Ask user if they want to use saved routes or create new ones
     print("There is a saved set of routes that have already been created. Do you want to use these routes?")
-    use_saved_routes = input("Enter 'y' or 'n': ").strip().lower()
+    use_saved_routes = input("\nEnter 'y' or 'n' [y]: ").strip().lower()
     if use_saved_routes == "n":
-        print("Are you sure you want to create new routes? This will overwrite the saved routes.\n"
+        print("\nAre you sure you want to create new routes? This will overwrite the saved routes.\n"
               "(Creating routes might take a large amount of memory or compute power depending on the what parameters "
               "you enter for the genetic algorithm!)")
-        confirm = input("Enter 'y' or 'n': ").strip().lower()
+        confirm = input("\nEnter 'y' or 'n' [n]: ").strip().lower()
         if confirm == "y":
             # Ask user for parameters to create routes
             route_list = list(Interface.create_routes(location_list, wgu).get_routes())
         else:
-            print("Using saved routes...")
+            print("\nUsing saved routes...\n")
             route_list = Interface.list_to_route_list(Interface.read_csv("data/saved_routes.csv"))
     else:
-        print("Using saved routes...")
+        print("\nUsing saved routes...\n")
         route_list = Interface.list_to_route_list(Interface.read_csv("data/saved_routes.csv"))
 else:
     # Ask user if they want to create new routes
-    print("There are no saved routes. Do you want to create new routes?")
-    create_new_routes = input("Enter 'y' or 'n': ").strip().lower()
+    print("There are no saved routes for the trucks to use. Do you want to create new routes?")
+    create_new_routes = input("Enter 'y' or 'n' [n]: ").strip().lower()
     if create_new_routes == "y":
         # Ask user for parameters to create routes
         route_list = list(Interface.create_routes(location_list, wgu).get_routes())
     else:
-        print("Exiting program...")
+        print("Unable to route trucks. Exiting program...")
         exit()
+
+# Display a menu for the user
+print("==========================================\n"
+      "1. Print All Packages With Total Mileage\n"
+      "2. Get a Single Package Status with a Time\n"
+      "3. Get All Package Status with a Time\n"
+      "4. Exit application\n"
+      "==========================================")
+
 
 # Print all route statistics
 Interface.print_route_statistics(list(route_list))
-"""
+
 # Create custom HashTable object to hold packages
 pkg_table = HashTable(50)
 
@@ -71,6 +80,6 @@ for pkg in pkg_list:
     pkg_table.insert_package(pkg)
 
 # Print all packages in HashTable in a table format
-print("Package Table:")
+print("\nPackage Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
-"""
+
