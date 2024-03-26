@@ -85,10 +85,10 @@ print("\nPackage Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
 
 # Tests TODO: remove
-deltas = Optimizer.prioritize_packages(pkg_table.values(pkg_ids))
+deltas = Optimizer.prioritize_packages(pkg_table.values(pkg_ids), Interface.get_hub())
 
 package_with_delta = []
 for i, package in enumerate(pkg_table.values(pkg_ids)):
     package_with_delta.append([package, deltas[i]])
 
-Interface.fancy_table(package_with_delta, [("Package", "Time Delta")])
+Interface.fancy_table(package_with_delta, [("Package", "Priority Value")])
