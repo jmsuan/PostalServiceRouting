@@ -165,7 +165,7 @@ class Optimizer:
         return best_route_set
 
     @staticmethod
-    def prioritize_packages(package_list: list[Package]) -> list[int]:
+    def prioritize_packages(package_list: list[Package], hub_location: Location) -> list[int]:
         """
         Assign package priorities based on multiple characteristics:
 
@@ -191,7 +191,9 @@ class Optimizer:
             eod_time = datetime.strptime("11:59:59 PM", "%I:%M:%S %p")
             deadline = package.get_deadline()
             time_left = eod_time - deadline
-            priority += int(time_left.total_seconds()) // 60  # Add the deadline's "minutes before EOD" to the priority
+            seconds_left = int(time_left.total_seconds())
+            minutes_left = seconds_left // 60  # "Minutes before EOD"
+            priority += round(minutes_left ** 1.4)
 
             # Add to priority based on special requirements
             special_code = package.get_special_code()
@@ -201,7 +203,35 @@ class Optimizer:
                 num_codes = len(special_code)
                 priority += num_codes * 50  # Add to priority proportional to how many special requirements there are
 
+            # Add to priority based on the distance to the HUB
+            priority += round(package.get_destination().distance_from(hub_location) * 10)
+
             priorities.append(priority)
+
+        # Second-pass priorities
+        priorities_to_add = []
+        for package in package_list:
+            priority = 0
+
+            # Add to priority based on how many other high priority packages are nearby.
+            for i, other_package in enumerate(package_list):
+                if package == other_package:
+                    priorities_to_add.append(0)
+                    continue
+                if priorities[i] > 0:
+                    distance = package.get_destination().distance_from(other_package.get_destination())
+                    if distance < 10:
+                        priority += 10
+                    elif distance < 20:
+                        priority += 5
+                    elif distance < 30:
+                        priority += 2
+
+                priorities_to_add.append(priority)
+
+        # Add the second-pass priorities to the first-pass priorities
+        for i in range(len(priorities)):
+            priorities[i] += priorities_to_add[i]
 
         return priorities
 
