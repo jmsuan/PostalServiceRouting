@@ -132,19 +132,6 @@ class Optimizer:
                 # Add offspring to new generation
                 new_generation.append(offspring)
 
-            '''# Create new RouteLists using crossover and mutation
-            new_generation = []
-            for i in range(population_size):
-                if i < elitism_size:
-                    new_generation.append(best_route_lists_sorted[i])
-                    continue  # Skip the best RouteLists
-                parent_1 = random.choice(best_route_lists_sorted)
-                parent_2 = random.choice(best_route_lists_sorted)
-                offspring = Optimizer.__crossover(parent_1, parent_2, hub)
-                if random.random() < 0.9:  # 90% chance of mutation
-                    offspring = Optimizer.__mutate(offspring)
-                new_generation.append(offspring)'''
-
             # Calculate fitness for each RouteList in the new generation
             fitness_scores = []
             for route_set in new_generation:
