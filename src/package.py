@@ -45,6 +45,13 @@ class Package:
         self._special_code = special_code
         self._status = status
 
+    def update_status(self, new_status: str) -> None:
+        """Updates the status of the package."""
+        if any("INVALID" in code for code in self._special_code) and new_status != "IN HUB":
+            raise ValueError(f"Package {self._package_id} has invalid information and cannot be updated. The only "
+                             f"valid new status for this package is 'IN HUB'.")
+        self._status = new_status
+
     def get_package_id(self) -> int:
         return self._package_id
 

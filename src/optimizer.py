@@ -12,7 +12,6 @@ class Optimizer:
     The Optimizer is divided into two parts to help simplify mileage optimization.
 
     First, the Optimizer generates routes from the hub, using the list of Locations.
-
     - The routes aim to achieve optimal mileage by creating static routes that hit the most Locations with the smallest
       total distance travelled. This means that a single route ideally follows a straight line out from the hub to the
       furthest destination, then comes back (stopping to deliver packages to locations along the line).

@@ -6,8 +6,8 @@ from location import Location
 class RouteList:
     def __init__(self, routes: list[list[Location]]):
         """
-        A set of Routes (in this case, an ordered list of Locations). Defines methods to help mutate a set of routes,
-        and also to help calculate the overall fitness.
+        A list of Routes (in this case, an ordered list of Locations). Defines methods to help mutate a set of routes,
+        and also to help calculate the overall fitness. Primarily for implementing a genetic algorithm.
 
         :param routes: A set of routes (i.e. a set of Location lists).
         """

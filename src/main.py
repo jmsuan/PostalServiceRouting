@@ -3,7 +3,10 @@
 from hash_table import HashTable
 from interface import Interface
 from location import Location
+from scheduler import Scheduler
 from optimizer import Optimizer
+from truck import Truck
+from driver import Driver
 
 # Print a new line for readability
 print()
@@ -84,11 +87,28 @@ for pkg in pkg_list:
 print("\nPackage Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
 
-# Tests TODO: remove
-deltas = Optimizer.prioritize_packages(pkg_table.values(pkg_ids), Interface.get_hub())
+# Create the Trucks and Drivers
+truck_list = []
+driver_list = []
+for i in range(1, 4):
+    truck_list.append(Truck(i))
+    driver_list.append(Driver(i))
 
-package_with_delta = []
-for i, package in enumerate(pkg_table.values(pkg_ids)):
-    package_with_delta.append([package, deltas[i]])
+# Initialize the Scheduler with the necessary information
+Scheduler.initialize(
+    "12:00 AM",
+    "8:00 AM",
+    route_list,
+    pkg_table,
+    Optimizer.prioritize_packages(pkg_table.values(pkg_ids), Interface.get_hub()),
+    truck_list,
+    driver_list,
+    Interface.get_hub()
+)
 
-Interface.fancy_table(package_with_delta, [("Package", "Priority Value")])
+# Print all packages in HashTable in a table format
+print("\nNew Package Table:")
+Interface.print_package_table(pkg_table.values(pkg_ids))
+
+while Scheduler.tick():
+    pass
