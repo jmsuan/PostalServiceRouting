@@ -168,43 +168,19 @@ class Scheduler:
                 if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
                     break
 
-                # Check if package has to be on another truck
-                truck_ids_special_code = []
-                if any("TRUCK[" in code for code in package.get_special_code()):
-                    for code in package.get_special_code():
-                        if "TRUCK[" in code:
-                            truck_list_str = code.replace("TRUCK[", "").replace("]", "")
-                            truck_ids_special_code = [int(id_num.strip()) for id_num in truck_list_str.split(",")]
-                pkg_allowed_on_truck = (
-                        highest_score_truck.get_id() in truck_ids_special_code or not truck_ids_special_code)
-                if not pkg_allowed_on_truck:
-                    continue
-
-                # Check if the package is not on the highest-score route
-                if package.get_destination() not in highest_score_route:
-                    continue
-
-                # Check if the package is on any other trucks
-                if any(package in truck.get_packages() for truck in cls.trucks):
-                    continue
-
-                # Check if the package is not in the hub
-                if package.get_status() != "IN HUB":
-                    continue
-
-                # Check if the package is invalid
-                if any("INVALID" in code for code in package.get_special_code()):
-                    continue
-
-                # All checks passed. We can now load the truck.
-                # TODO: Account for BATCH requirements
-                highest_score_truck.load(package)
-                package.update_status(f"EN ROUTE - TRUCK {highest_score_truck.get_id()}")
-                print(f"Package {package.get_package_id()} loaded onto Truck {highest_score_truck.get_id()}.")
+                # Check if the package can be loaded onto the truck
+                if cls.__check_package_for_loading(package, highest_score_truck, highest_score_route):
+                    # All checks passed. We can now load the truck.
+                    # TODO: Account for BATCH requirements
+                    highest_score_truck.load(package)
+                    package.update_status(f"EN ROUTE - TRUCK {highest_score_truck.get_id()}")
+                    print(f"Package {package.get_package_id()} loaded onto Truck {highest_score_truck.get_id()}.")
 
             # Remove the chosen truck and driver from hub
             trucks_at_hub.remove(highest_score_truck)
             drivers_at_hub.remove(first_available_driver)
+
+        print(f"The current time is {cls.get_current_time()}")
 
         return False
 
@@ -219,7 +195,48 @@ class Scheduler:
         return cls.current_time.strftime("%I:%M %p")
 
     @classmethod
-    def __optimize_route(cls, packages_to_deliver: list[Package], route_to_optimize: list[Location]):
+    def __check_package_for_loading(cls, package: Package, truck: Truck, route: list[Location]) -> bool:
+        """
+        Checks if a package can be loaded onto a truck based on if the package is on another truck, the package's
+        special codes, the package's destination, and the route that the truck will take.
+
+        :param package: The package to check.
+        :param truck: The truck to check.
+        :param route: The route that the truck will take.
+        :return: True if the package can be loaded onto the truck, False otherwise.
+        """
+        # Check if package has to be on another truck
+        truck_ids_special_code = []
+        if any("TRUCK[" in code for code in package.get_special_code()):
+            for code in package.get_special_code():
+                if "TRUCK[" in code:
+                    truck_list_str = code.replace("TRUCK[", "").replace("]", "")
+                    truck_ids_special_code = [int(id_num.strip()) for id_num in truck_list_str.split(",")]
+        pkg_allowed_on_truck = (
+                truck.get_id() in truck_ids_special_code or not truck_ids_special_code)
+        if not pkg_allowed_on_truck:
+            return False
+
+        # Check if the package is not on the highest-score route
+        if package.get_destination() not in route:
+            return False
+
+        # Check if the package is on any other trucks
+        if any(package in truck.get_packages() for truck in cls.trucks):
+            return False
+
+        # Check if the package is not in the hub
+        if package.get_status() != "IN HUB":
+            return False
+
+        # Check if the package is invalid
+        if any("INVALID" in code for code in package.get_special_code()):
+            return False
+
+        return True
+
+    @classmethod
+    def __optimize_route(cls, packages_to_deliver: list[Package], route_to_optimize: list[Location]) -> list[Location]:
         """
         Optimizes the route that the truck will take to deliver the packages in the most efficient manner. The route
         will be optimized to minimize the distance traveled by the truck. The route will be optimized using Dijkstra's
@@ -227,5 +244,6 @@ class Scheduler:
 
         :param packages_to_deliver: The list of packages that the truck will deliver.
         :param route_to_optimize: The route that the truck will take to deliver the packages.
+        :return: The optimized route that the truck can take to deliver the packages.
         """
         pass
