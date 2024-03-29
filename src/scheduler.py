@@ -1,10 +1,11 @@
 from datetime import datetime
 from datetime import timedelta
+
+from driver import Driver
+from hash_table import HashTable
 from location import Location
 from package import Package
 from truck import Truck
-from driver import Driver
-from hash_table import HashTable
 
 
 class Scheduler:
@@ -111,24 +112,18 @@ class Scheduler:
         # Check if it's before the delivery_start_time
         if cls.current_time < cls.delivery_start_time:
             cls.current_time += timedelta(minutes=1)
-            return True
+            return True  # It's before the delivery start time, loop again
 
         # Check if all the packages are delivered and all the trucks are back at the hub
         all_packages_delivered = all(package.get_status() == "DELIVERED" for package in cls.package_table.all_values())
         all_trucks_at_hub = all(truck.is_at_hub() for truck in cls.trucks)
         if all_packages_delivered and all_trucks_at_hub:
-            return False
+            return False  # All packages are delivered and all trucks are back at the hub
 
-        # Determine how many packages are in the hub that need to be delivered on particular a truck
+        # Determine how many packages are in the hub that need to be delivered on particular a truck. Give a score to
+        # each truck based on the number of packages that must be on that truck
         truck_scores = {truck.get_id(): 0 for truck in cls.trucks}
         for package in cls.package_table.all_values():
-            """
-            Available codes:
-                - TRUCK[{list of truck IDs}]: specifies required truck numbers.
-                - INVALID: Indicates invalid package information (must remain in location until package is updated).
-                - BUNDLE[{list of package IDs}]: Specifies joint delivery with other packages.
-                - DELAY[{datetime}]: Specifies a delayed arrival time for the package.
-            """
             if any("TRUCK[" in code for code in package.get_special_code()):
                 for code in package.get_special_code():
                     if "TRUCK[" in code:
@@ -138,11 +133,83 @@ class Scheduler:
                             if package.get_status() == "IN HUB":
                                 truck_scores[truck_id] += 1
 
-        print(f"Trucks with Packages that require them: {truck_scores.items()}")
-        return False  # TODO: Remove Test
+        # Check if there is a driver and truck at the hub to load and deploy en route
+        trucks_at_hub = [truck for truck in cls.trucks if truck.is_at_hub()]
+        # A driver that isn't driving a truck should always be at the hub
+        drivers_at_hub = \
+            [driver for driver in cls.drivers if driver not in [truck.get_driver() for truck in cls.trucks]]
+
+        while trucks_at_hub and drivers_at_hub:
+            # Find the highest-score truck that is at the hub
+            trucks_at_hub_scores = {truck_id: score for truck_id, score in truck_scores.items() if truck_id in
+                                    [truck.get_id() for truck in trucks_at_hub]}
+            highest_score_truck_id = max(trucks_at_hub_scores, key=trucks_at_hub_scores.get)
+            highest_score_truck = next(truck for truck in cls.trucks if truck.get_id() == highest_score_truck_id)
+
+            # Assign the first available driver to the highest score truck
+            first_available_driver = next(driver for driver in drivers_at_hub if driver not in
+                                          [truck.get_driver() for truck in cls.trucks])
+            highest_score_truck.set_driver(first_available_driver)
+
+            # Assign a score for each route the truck could take (using package priority)
+            route_scores = []
+            for route in cls.route_list:
+                score = 0
+                for package, priority in cls.prioritized_pkgs:
+                    if package.get_status() == "IN HUB" and package.get_destination() in route:
+                        score += priority
+                route_scores.append(score)
+            highest_score_route, _ = sorted(
+                zip(cls.route_list.copy(), route_scores), key=lambda x: x[1], reverse=True)[0]
+
+            # Load packages onto the truck if the package can be loaded onto this particular truck.
+            for package, _ in cls.prioritized_pkgs:
+                # Check is truck is at capacity
+                if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
+                    break
+
+                # Check if package has to be on another truck
+                truck_ids_special_code = []
+                if any("TRUCK[" in code for code in package.get_special_code()):
+                    for code in package.get_special_code():
+                        if "TRUCK[" in code:
+                            truck_list_str = code.replace("TRUCK[", "").replace("]", "")
+                            truck_ids_special_code = [int(id_num.strip()) for id_num in truck_list_str.split(",")]
+                pkg_allowed_on_truck = (
+                        highest_score_truck.get_id() in truck_ids_special_code or not truck_ids_special_code)
+                if not pkg_allowed_on_truck:
+                    continue
+
+                # Check if the package is not on the highest-score route
+                if package.get_destination() not in highest_score_route:
+                    continue
+
+                # Check if the package is on any other trucks
+                if any(package in truck.get_packages() for truck in cls.trucks):
+                    continue
+
+                # Check if the package is not in the hub
+                if package.get_status() != "IN HUB":
+                    continue
+
+                # Check if the package is invalid
+                if any("INVALID" in code for code in package.get_special_code()):
+                    continue
+
+                # All checks passed. We can now load the truck.
+                # TODO: Account for BATCH requirements
+                highest_score_truck.load(package)
+                package.update_status(f"EN ROUTE - TRUCK {highest_score_truck.get_id()}")
+                print(f"Package {package.get_package_id()} loaded onto Truck {highest_score_truck.get_id()}.")
+
+            # Remove the chosen truck and driver from hub
+            trucks_at_hub.remove(highest_score_truck)
+            drivers_at_hub.remove(first_available_driver)
+
+        return False
 
         # Progress the current time by one minute
-        cls.current_time += timedelta(minutes=1)
+        # cls.current_time += timedelta(minutes=1)
 
     @classmethod
     def get_current_time(cls) -> str:

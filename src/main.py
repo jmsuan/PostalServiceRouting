@@ -90,8 +90,11 @@ Interface.print_package_table(pkg_table.values(pkg_ids))
 # Create the Trucks and Drivers
 truck_list = []
 driver_list = []
+# 3 Trucks
 for i in range(1, 4):
     truck_list.append(Truck(i))
+# 2 Drivers
+for i in range(1, 3):
     driver_list.append(Driver(i))
 
 # Initialize the Scheduler with the necessary information
@@ -106,9 +109,8 @@ Scheduler.initialize(
     Interface.get_hub()
 )
 
-# Print all packages in HashTable in a table format
+while Scheduler.get_current_time() != "11:59 PM" and Scheduler.tick():
+    pass
+
 print("\nNew Package Table:")
 Interface.print_package_table(pkg_table.values(pkg_ids))
-
-while Scheduler.tick():
-    pass

@@ -15,6 +15,7 @@ class Truck:
         :param driver: The Driver that is assigned to deliver Packages using this Truck. (Default: None)
         """
         self._id = truck_id
+        self._capacity = capacity
         self._avg_speed = avg_speed  # Miles per hour
         self._driver = driver
         self._packages = []
@@ -47,3 +48,24 @@ class Truck:
 
     def get_id(self) -> int:
         return self._id
+
+    def get_driver(self) -> Driver:
+        return self._driver
+
+    def get_capacity(self) -> int:
+        return self._capacity
+
+    def get_avg_speed(self) -> float:
+        return self._avg_speed
+
+    def get_packages(self) -> list[Package]:
+        return self._packages
+
+    def get_mileage(self) -> float:
+        return self._mileage
+
+    def get_last_location(self) -> Location:
+        return self._last_location
+
+    def get_route(self) -> list[Location]:
+        return self._route
