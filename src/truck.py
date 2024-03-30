@@ -22,11 +22,23 @@ class Truck:
         self._mileage = 0.0
         self._last_location = Interface.get_hub()
         self._route = []
+        self._distance_to_next = 0.0
 
     def load(self, package: Package):
         self._packages.append(package)
         package.update_status(f"EN ROUTE - TRUCK {self.get_id()}")
         print(f"Package {package.get_package_id()} loaded onto Truck {self.get_id()}.")
+
+    def deliver(self, package: Package):
+        self._packages.remove(package)
+        package.update_status("DELIVERED")
+        print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
+
+    def set_distance_to_next(self, distance: float):
+        self._distance_to_next = distance
+
+    def distance_to_next(self) -> float:
+        return self._distance_to_next
 
     def add_miles(self, miles: float):
         self._mileage += miles

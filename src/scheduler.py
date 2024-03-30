@@ -6,6 +6,7 @@ from hash_table import HashTable
 from location import Location
 from package import Package
 from truck import Truck
+from route_list import RouteList
 
 
 class Scheduler:
@@ -138,7 +139,7 @@ class Scheduler:
         # A driver that isn't driving a truck should always be at the hub
         drivers_at_hub = \
             [driver for driver in cls.drivers if driver not in [truck.get_driver() for truck in cls.trucks]]
-
+        # Load and deploy en route
         while trucks_at_hub and drivers_at_hub:
             # Find the highest-score truck that is at the hub
             trucks_at_hub_scores = {truck_id: score for truck_id, score in truck_scores.items() if truck_id in
@@ -190,6 +191,14 @@ class Scheduler:
                 # Check if the package can be loaded onto the truck
                 if cls.__check_package_for_loading(package, highest_score_truck, highest_score_route):
                     highest_score_truck.load(package)
+
+            # Optimize the route that the truck will take to deliver the packages in the most efficient manner
+            optimized_route = cls.__optimize_route(highest_score_truck.get_packages(), highest_score_route)
+            for location in optimized_route:
+                highest_score_truck.add_to_route(location)
+
+            # Set the distance to the next location
+            highest_score_truck.set_distance_to_next(cls.hub.distance_from(optimized_route[0]))
 
             # Remove the chosen truck and driver from hub
             trucks_at_hub.remove(highest_score_truck)
@@ -255,10 +264,33 @@ class Scheduler:
         """
         Optimizes the route that the truck will take to deliver the packages in the most efficient manner. The route
         will be optimized to minimize the distance traveled by the truck. The route will be optimized using Dijkstra's
-        algorithm, which will only be used if the truck has to skip a location.
+        algorithm, which will only be used if the truck has to skip a location. The optimization will also account for
+        any locations that aren't in the route that the truck will take. (This is to allow for batch deliveries.)
 
         :param packages_to_deliver: The list of packages that the truck will deliver.
         :param route_to_optimize: The route that the truck will take to deliver the packages.
         :return: The optimized route that the truck can take to deliver the packages.
         """
-        pass
+        route_copy = route_to_optimize.copy()
+
+        package_locations = [package.get_destination() for package in packages_to_deliver]
+
+        # Add all locations that aren't in the route to the route
+        for location in package_locations:
+            if location not in route_copy:
+                # Find best place in the route to insert the location
+                best_index = 0
+                best_distance = float("inf")
+                for i in range(len(route_copy) + 1):
+                    temp_route = route_copy.copy()
+                    temp_route.insert(i, location)
+                    distance = RouteList.get_route_distance(temp_route)
+                    if distance < best_distance:
+                        best_index = i
+                        best_distance = distance
+                route_copy.insert(best_index, location)
+
+        # Implement Dijkstra's algorithm to optimize the route ONLY if the truck has to skip a location on the route.
+        # TODO: Implement Dijkstra's algorithm here
+
+        return route_copy
