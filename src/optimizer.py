@@ -188,6 +188,12 @@ class Optimizer:
                 assert isinstance(special_code, list) and all(isinstance(item, str) for item in special_code)
                 num_codes = len(special_code)
                 priority += num_codes * 50  # Add to priority proportional to how many special requirements there are
+                # Check for batch codes
+                for code in special_code:
+                    if "BATCH" in code:
+                        # Add a large number to the priority to ensure that batched packages are delivered together
+                        priority += 1000000
+                        break
 
             # Add to priority based on the distance to the HUB
             priority += round(package.get_destination().distance_from(hub_location) * 10)

@@ -25,6 +25,8 @@ class Truck:
 
     def load(self, package: Package):
         self._packages.append(package)
+        package.update_status(f"EN ROUTE - TRUCK {self.get_id()}")
+        print(f"Package {package.get_package_id()} loaded onto Truck {self.get_id()}.")
 
     def add_miles(self, miles: float):
         self._mileage += miles

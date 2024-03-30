@@ -31,7 +31,7 @@ class Package:
             Available codes:
                 - TRUCK[{list of truck IDs}]: specifies required truck numbers.
                 - INVALID: Indicates invalid package information (must remain in location until package is updated).
-                - BUNDLE[{list of package IDs}]: Specifies joint delivery with other packages.
+                - BATCH[{list of package IDs}]: Specifies joint delivery with other packages.
                 - DELAY[{datetime}]: Specifies a delayed arrival time for the package.
         :param status: (str, optional) The current status of the package. Defaults to "IN HUB".
         """

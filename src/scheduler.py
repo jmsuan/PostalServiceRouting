@@ -168,13 +168,28 @@ class Scheduler:
                 if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
                     break
 
+                # Load batched packages first (batched packages have a high priority)
+                if any("BATCH[" in code for code in package.get_special_code()):
+                    # Include the package itself
+                    if cls.__check_package_for_loading(package, highest_score_truck,
+                                                       [location for route in cls.route_list for location in route]):
+                        highest_score_truck.load(package)
+                    # Load the rest of the batched packages
+                    for code in package.get_special_code():
+                        if "BATCH[" in code:
+                            pkg_list_str = code.replace("BATCH[", "").replace("]", "")
+                            pkg_ids = [int(id_num.strip()) for id_num in pkg_list_str.split(",")]
+                            for pkg_id in pkg_ids:
+                                pkg = cls.package_table.lookup_package(pkg_id)
+                                # Check if the package can be loaded onto the truck, regardless of the route
+                                if cls.__check_package_for_loading(pkg, highest_score_truck,
+                                                                   [location for route in cls.route_list
+                                                                    for location in route]):
+                                    highest_score_truck.load(pkg)
+
                 # Check if the package can be loaded onto the truck
                 if cls.__check_package_for_loading(package, highest_score_truck, highest_score_route):
-                    # All checks passed. We can now load the truck.
-                    # TODO: Account for BATCH requirements
                     highest_score_truck.load(package)
-                    package.update_status(f"EN ROUTE - TRUCK {highest_score_truck.get_id()}")
-                    print(f"Package {package.get_package_id()} loaded onto Truck {highest_score_truck.get_id()}.")
 
             # Remove the chosen truck and driver from hub
             trucks_at_hub.remove(highest_score_truck)
