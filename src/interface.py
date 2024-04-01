@@ -116,7 +116,7 @@ class Interface:
         return package_list
 
     @staticmethod
-    def print_package_table(table: list[list]) -> None:
+    def print_package_table(table: list[list], title: str = None, footer: str = None) -> None:
         """
         Print the given package table in a human-readable format.
 
@@ -130,6 +130,8 @@ class Interface:
             "Weight:",
             "Special Code:",
             "Status:"
+        :param title: The title of the table.
+        :param footer: The footer of the table.
         :return: This function does not return a value.
         """
         header = [(
@@ -144,15 +146,21 @@ class Interface:
             "Status:"
         )]
 
-        Interface.fancy_table(table, header)
+        Interface.fancy_table(table, header, title, footer)
 
     @staticmethod
-    def fancy_table(table: list[list], header: list[tuple[any, ...]] = None) -> None:
+    def fancy_table(
+            table: list[list],
+            header: list[tuple[any, ...]] = None,
+            title: str = None,
+            footer: str = None) -> None:
         """
         Print a human-readable table from the given values.
 
         :param table: A list with lists inside of it.
         :param header: The title of each column in order.
+        :param title: The title of the table.
+        :param footer: The footer of the table.
         :return: This function does not return a value.
         """
         if header is None:
@@ -175,13 +183,44 @@ class Interface:
         for i in range(num_columns):
             len_columns.append(Interface.__table_index_max_length(table, i))
 
+        # Print title if present
+        if title:
+            total_length = 0
+            print("┌─", end="")
+
+            # Print top border above title
+            for i in range(num_columns):
+                for _ in range(len_columns[i]):  # Range is character length of each column
+                    print("─", end="")
+                    total_length += 1
+                if i == num_columns - 1:
+                    print("─┐")
+                    continue
+                print("───", end="")
+                total_length += 3
+
+            # Print title
+            spaces_to_add = (total_length - len(title)) // 2
+            # If the spaces to add is negative, then the title is too long for the table
+            if spaces_to_add < 0:
+                print(f"│{title}│")
+            else:
+                odd_space = len(title) % 2
+                print("│ ", end="")
+                for i in range(spaces_to_add):
+                    print(" ", end="")
+                print(title, end="")
+                for i in range(spaces_to_add + odd_space):
+                    print(" ", end="")
+                print(" │")
+
         # Format top border with proper lengths
-        print("┌─", end="")
+        print("├─", end="") if title else print("┌─", end="")
         for i in range(num_columns):
             for _ in range(len_columns[i]):  # Range is character length of each column
                 print("─", end="")
             if i == num_columns - 1:
-                print("─┐")
+                print("─┤") if title else print("─┐")
                 continue
             print("─┬─", end="")
 
@@ -197,14 +236,50 @@ class Interface:
             print("")
 
         # Print bottom border
-        print("└─", end="")
+        print("├─", end="") if footer else print("└─", end="")
         for i in range(num_columns):
             for _ in range(len_columns[i]):  # Range is character length of each column
                 print("─", end="")
             if i == num_columns - 1:
-                print("─┘")
+                print("─┤") if footer else print("─┘")
                 continue
             print("─┴─", end="")
+
+        # Print footer if present
+        if footer:
+            total_length = 0
+            # Get total length of the table
+            for i in range(num_columns):
+                for _ in range(len_columns[i]):  # Range is character length of each column
+                    total_length += 1
+                if i == num_columns - 1:
+                    continue
+                total_length += 3
+
+            # Print footer
+            spaces_to_add = (total_length - len(footer)) // 2
+            # If the spaces to add is negative, then the title is too long for the table
+            if spaces_to_add < 0:
+                print(f"│{footer}│")
+            else:
+                odd_space = len(footer) % 2
+                print("│ ", end="")
+                for i in range(spaces_to_add):
+                    print(" ", end="")
+                print(footer, end="")
+                for i in range(spaces_to_add + odd_space):
+                    print(" ", end="")
+                print(" │")
+
+            # Print bottom border below title
+            print("└─", end="")
+            for i in range(num_columns):
+                for _ in range(len_columns[i]):  # Range is character length of each column
+                    print("─", end="")
+                if i == num_columns - 1:
+                    print("─┘")
+                    continue
+                print("───", end="")
 
     @staticmethod
     def __special_notes_to_code(special_notes: str) -> list[str]:
