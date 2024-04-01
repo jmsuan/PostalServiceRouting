@@ -136,7 +136,7 @@ while u_input != "6":
         pkg_id = int(input("Enter a package ID to get the status of: ").strip())
         # Validate the package ID entered
         if pkg_id not in pkg_ids:
-            print("Invalid package ID entered. Try again.")
+            print("Invalid package ID entered. Try again.\n")
             continue
 
         # Print all packages with total mileage
