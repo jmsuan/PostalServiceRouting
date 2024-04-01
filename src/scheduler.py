@@ -13,6 +13,7 @@ class Scheduler:
     """
     TODO: Apply Dijkstra's algorithm when we have to skip locations in a route.
     """
+    initialized_time: datetime = None
     current_time: datetime = None
     delivery_start_time: datetime = None
     package_table: HashTable = None
@@ -55,6 +56,7 @@ class Scheduler:
 
         # Initialize the Scheduler's attributes
         cls.current_time = datetime.strptime(init_time, "%I:%M %p")
+        cls.initialized_time = cls.current_time
         cls.delivery_start_time = datetime.strptime(begin_delivery_time, "%I:%M %p")
         cls.route_list = routes_to_follow.copy()
         cls.package_table = package_table
@@ -74,6 +76,33 @@ class Scheduler:
                         break
             else:
                 package.update_status("IN HUB")
+
+    @classmethod
+    def reset_day(cls):
+        """
+        Resets the packages to its initial state.
+        """
+        # Set the initial status of each package
+        for package in cls.package_table.all_values():
+            # Check if the special codes has "DELAY"
+            if any("DELAY[" in code for code in package.get_special_code()):
+                for code in package.get_special_code():
+                    if "DELAY[" in code:
+                        time_str = code.replace("DELAY[", "").replace("]", "")
+                        time = datetime.strptime(time_str, "%H:%M:%S")
+                        package.update_status(f"DELAYED UNTIL {time.strftime('%I:%M %p')}")
+                        break
+            else:
+                package.update_status("IN HUB")
+        # Reset the trucks
+        for truck in cls.trucks:
+            truck.reset_packages()
+            truck.reset_driver()
+            truck.reset_route()
+            truck.set_distance_to_next(0.0)
+            truck.reset_odometer()
+        # Reset the current time to the initialized time
+        cls.current_time = cls.initialized_time
 
     @classmethod
     def tick(cls) -> bool:
@@ -116,10 +145,13 @@ class Scheduler:
             return True  # It's before the delivery start time, loop again
 
         # Check if all the packages are delivered and all the trucks are back at the hub
-        all_packages_delivered = all(package.get_status() == "DELIVERED" for package in cls.package_table.all_values())
-        all_trucks_at_hub = all(truck.is_at_hub() for truck in cls.trucks)
-        if all_packages_delivered and all_trucks_at_hub:
-            return False  # All packages are delivered and all trucks are back at the hub
+        acceptable_statuses = ["DELIVERED", "ATTEMPTED"]
+        all_packages_delivered = (
+            all(package.get_status().strip() in acceptable_statuses for package in cls.package_table.all_values()))
+        # Check if all trucks are at the hub (not necessary to check due to the requirements of the project)
+        # all_trucks_at_hub = all(truck.is_at_hub() for truck in cls.trucks)
+        if all_packages_delivered:  # Could check if all_trucks_at_hub here
+            return False  # The day is over
 
         # Determine how many packages are in the hub that need to be delivered on particular a truck. Give a score to
         # each truck based on the number of packages that must be on that truck
@@ -204,12 +236,12 @@ class Scheduler:
             trucks_at_hub.remove(highest_score_truck)
             drivers_at_hub.remove(first_available_driver)
 
-        print(f"The current time is {cls.get_current_time()}")
-
-        return False
+        # TODO: remove this print statement
+        # print(f"The current time is {cls.get_current_time()}")
 
         # Progress the current time by one minute
-        # cls.current_time += timedelta(minutes=1)
+        cls.current_time += timedelta(minutes=1)
+        return True
 
     @classmethod
     def get_current_time(cls) -> str:
@@ -294,3 +326,15 @@ class Scheduler:
         # TODO: Implement Dijkstra's algorithm here
 
         return route_copy
+
+    @staticmethod
+    def validate_time(time_str):
+        """
+        Validates the time string to ensure that it is in the correct format. Returns the time if it is in the correct
+        format, otherwise returns False.
+        """
+        try:
+            time_entered = datetime.strptime(time_str, "%I:%M %p")
+            return time_entered
+        except ValueError:
+            return False
