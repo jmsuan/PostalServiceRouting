@@ -27,7 +27,6 @@ class Truck:
     def load(self, package: Package):
         self._packages.append(package)
         package.update_status(f"EN ROUTE - TRUCK {self.get_id()}")
-        print(f"Package {package.get_package_id()} loaded onto Truck {self.get_id()}.")
 
     def deliver(self, package: Package):
         self._packages.remove(package)
@@ -49,11 +48,18 @@ class Truck:
     def set_driver(self, new_driver: Driver):
         self._driver = new_driver
 
+    def reset_driver(self):
+        self._driver = None
+
     def add_to_route(self, destination: Location):
         self._route.append(destination)
 
     def reset_route(self):
         self._route = []
+        self._last_location = Interface.get_hub()
+
+    def reset_packages(self):
+        self._packages = []
 
     def is_at_hub(self) -> bool:
         if self._last_location == Interface.get_hub() and not self._route:
