@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from package import Package
+import copy
 
 
 class HashTable:

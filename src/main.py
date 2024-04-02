@@ -1,4 +1,5 @@
 # Student ID: 001264312
+from typing import List
 
 from hash_table import HashTable
 from interface import Interface
@@ -64,9 +65,12 @@ for i in range(1, 4):
 for i in range(1, 3):
     driver_list.append(Driver(i))
 
+# Set the initial time for the Scheduler
+initial_time = "12:00 AM"
+
 # Initialize the Scheduler with the necessary information
 Scheduler.initialize(
-    "12:00 AM",
+    initial_time,
     "8:00 AM",
     route_list,
     pkg_table,
@@ -86,6 +90,17 @@ menu = ("\n=========================================================\n"
         "6. Exit Application\n"
         "=========================================================")
 
+
+# Define updates to make to the packages during the day
+def update_packages(time: str):
+    # Update Package statuses based on the current time
+    if time == "10:20 AM":
+        correct_location = Location.get_location_by_address("410 S State St", "84111")
+        pkg_table.lookup_package(9).set_destination(correct_location)
+        pkg_table.lookup_package(9).update_status("IN HUB")
+        pkg_table.lookup_package(9).make_valid()
+
+
 # Main loop for the application
 u_input = input(menu + "\nEnter a number from the menu: ").strip()
 while u_input != "6":
@@ -94,7 +109,7 @@ while u_input != "6":
     if u_input == "1":
         # Run the Scheduler until the end of the day
         while Scheduler.get_current_time() != "11:59 PM" and Scheduler.tick():
-            pass
+            update_packages(Scheduler.get_current_time())
 
         # Get time for end of day
         time_end = Scheduler.get_current_time()
@@ -109,7 +124,7 @@ while u_input != "6":
         Interface.print_package_table(
             pkg_table.values(pkg_ids),
             f"Routing Finished - Day ended at {time_end}",
-            f"Total Mileage: {total_mileage} miles"
+            f"Total Mileage: {total_mileage:.2f} miles"
         )
         
     # 2. Get a Single Package Status With a Time
@@ -126,8 +141,9 @@ while u_input != "6":
             continue
         time_str = desired_time.strftime("%I:%M %p")  # Format the time for comparison
 
-        while Scheduler.get_current_time() != time_str:
-            Scheduler.tick()  # Run the Scheduler until the desired time is reached
+        # Run the Scheduler until the desired time is reached OR the end of the day
+        while Scheduler.get_current_time() != time_str and Scheduler.tick():
+            update_packages(Scheduler.get_current_time())
 
         # Get time after ticking to the desired time (redundant, but good to check)
         time_end = Scheduler.get_current_time()
@@ -160,8 +176,9 @@ while u_input != "6":
             continue
         time_str = desired_time.strftime("%I:%M %p")  # Format the time for comparison
 
-        while Scheduler.get_current_time() != time_str:
-            Scheduler.tick()  # Run the Scheduler until the desired time is reached
+        # Run the Scheduler until the desired time is reached OR the end of the day
+        while Scheduler.get_current_time() != time_str and Scheduler.tick():
+            update_packages(Scheduler.get_current_time())
 
         # Get time after ticking to the desired time (redundant, but good to check)
         time_end = Scheduler.get_current_time()
@@ -176,7 +193,7 @@ while u_input != "6":
         Interface.print_package_table(
             pkg_table.values(pkg_ids),
             f"Routing Status - Current Time: {time_end}",
-            f"Total Mileage: {total_mileage} miles"
+            f"Total Mileage: {total_mileage:.2f} miles"
         )
         
     # 4. Generate New Routes for the Trucks (Genetic Algorithm)

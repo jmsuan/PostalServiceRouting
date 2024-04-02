@@ -42,6 +42,8 @@ class Package:
         self._state = state
         self._deadline = deadline
         self._weight = weight
+        if special_code is None:
+            special_code = []
         self._special_code = special_code
         self._status = status
 
@@ -52,8 +54,15 @@ class Package:
                              f"valid new status for this package is 'IN HUB'.")
         self._status = new_status
 
+    def make_valid(self) -> None:
+        """Makes the package valid for delivery."""
+        self._special_code = [code for code in self._special_code if code != "INVALID"]
+
     def get_package_id(self) -> int:
         return self._package_id
+
+    def set_destination(self, new_destination: Location) -> None:
+        self._destination = new_destination
 
     def get_destination(self) -> Location:
         return self._destination
@@ -123,7 +132,7 @@ class Package:
             case 6:
                 return f"{self._weight} kg"
             case 7:
-                return self.get_special_code()
+                return self.get_special_code() if self.get_special_code() else ""
             case 8:
                 return self.get_status()
             case _:

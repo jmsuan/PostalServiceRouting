@@ -195,6 +195,10 @@ class Optimizer:
                         priority += 1000000
                         break
 
+                # Add very high priority if package has a special code and a deadline
+                if deadline != eod_time:
+                    priority += 1000000
+
             # Add to priority based on the distance to the HUB
             priority += round(package.get_destination().distance_from(hub_location) * 10)
 

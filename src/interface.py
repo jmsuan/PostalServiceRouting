@@ -205,7 +205,7 @@ class Interface:
             if spaces_to_add < 0:
                 print(f"│{title}│")
             else:
-                odd_space = len(title) % 2
+                odd_space = (total_length - len(title)) % 2
                 print("│ ", end="")
                 for i in range(spaces_to_add):
                     print(" ", end="")
@@ -262,7 +262,7 @@ class Interface:
             if spaces_to_add < 0:
                 print(f"│{footer}│")
             else:
-                odd_space = len(footer) % 2
+                odd_space = (total_length - len(footer)) % 2
                 print("│ ", end="")
                 for i in range(spaces_to_add):
                     print(" ", end="")
