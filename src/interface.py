@@ -7,6 +7,11 @@ from route_list import RouteList
 
 
 class Interface:
+    """
+    The interface for main() to interact with the program and simplify readability. This class is responsible for
+    reading data from CSV files, converting that data into usable objects, and displaying information to the user in a
+    readable format. It also provides a method for the user to create routes using a genetic algorithm.
+    """
     _hub_location = None
 
     @staticmethod
@@ -459,13 +464,15 @@ class Interface:
             print("Genetic Algorithm Parameters:")
 
             # Ask user for number of routes to create
-            num_routes = int(input("How many routes would you like to create? "))
+            num_routes = int(input("How many routes would you like to create? (1-50) "))
 
             # Ask user for the number of generations to run the genetic algorithm
-            num_generations = int(input("How many generations would you like to run the genetic algorithm for? "))
+            num_generations = int(input("How many generations would you like to run the genetic algorithm for? ("
+                                        "100-10000) "))
 
             # Ask user for the population size
-            population_size = int(input("What would you like the population size to be for each generation? "))
+            population_size = int(input("What would you like the population size to be for each generation? "
+                                        "(50-1000) "))
 
             # Ask user to confirm parameters
             print(f"Number of routes: {num_routes}")

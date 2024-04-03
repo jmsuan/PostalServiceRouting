@@ -62,13 +62,14 @@ class Optimizer:
         :param population_size: The number of RouteLists to be in each generation.
         :return: A RouteList object that contains the routes (lists of Locations) that the Trucks will follow.
         """
-        if num_routes < 1:
-            raise ValueError("num_routes must be greater than 0")
-        if population_size < 50:
-            raise ValueError("population_size must be at least 50")
-        if total_generations < 50:
-            raise ValueError("total_generations must be at least 50 to ensure the algorithm has enough time to "
-                             "converge on a solution.")
+        if num_routes < 1 or num_routes > 50:
+            raise ValueError("num_routes must be 1 to 50")
+        if total_generations < 100 or total_generations > 100000:
+            raise ValueError("total_generations must be at least 50 and less than 100000 to allow ample time to find a "
+                             "good solution.")
+        if population_size < 50 or population_size > 1000:
+            raise ValueError("population_size must be at least 50 and less than 1000 to allow for a diverse "
+                             "population.")
 
         # Collect all Locations that aren't the hub
         locations_to_visit = all_location_list.copy()
