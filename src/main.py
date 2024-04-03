@@ -1,5 +1,4 @@
 # Student ID: 001264312
-from typing import List
 
 from hash_table import HashTable
 from interface import Interface
