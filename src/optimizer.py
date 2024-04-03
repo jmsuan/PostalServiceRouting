@@ -77,72 +77,89 @@ class Optimizer:
         # Generate initial population
         current_generation = []
         for _ in range(population_size):  # Create a RouteList for each member of the population
-            route_set = []
+            route_list = []
             random.shuffle(locations_to_visit)  # Shuffle the locations
             for i in range(num_routes):
                 route = locations_to_visit[i::num_routes]  # Slice the list of locations into num_routes parts
                 route.insert(0, hub)
                 route.append(hub)
-                route_set.append(route)
+                route_list.append(route)
             # Convert the set of routes to a RouteList and add it to the first generation
-            current_generation.append(RouteList(route_set))
+            current_generation.append(RouteList(route_list))
 
         # Calculate fitness for each RouteList the first generation
         fitness_scores = []
-        for route_set in current_generation:
-            route_fitness = Optimizer.__fitness(route_set, hub)
+        for route_list in current_generation:
+            route_fitness = Optimizer.__fitness(route_list, hub)
             fitness_scores.append(route_fitness)
 
         # Run genetic algorithm
         generations_left = total_generations
         while not Optimizer.__terminate(generations_left, fitness_scores):
             # Select the best RouteLists
-            best_route_lists_sorted = Optimizer.__select(current_generation, fitness_scores)
+            best_route_lists_sorted: list[RouteList] = Optimizer.__select(current_generation, fitness_scores)
 
             # Implement elitism to keep a certain number of the best solutions
             elitism_size = 5
-            elite_pool = best_route_lists_sorted[0:elitism_size].copy()
+            elite_pool: list[RouteList] = best_route_lists_sorted[0:elitism_size]
 
-            # Create new RouteLists using crossover and mutation
+            # Create new RouteLists using randomness, crossover and mutation
             new_generation = []
             for i in range(population_size):
                 # Keep the elite RouteLists
                 if i < elitism_size:
-                    new_generation.append(RouteList(RouteList.get_routes(best_route_lists_sorted[i]).copy()))
+                    new_generation.append(elite_pool[i])
                     continue
 
+                """# Choose whether to make a shuffled RouteList
+                if random.random() < 0.4:  # 40% chance of making a shuffled RouteList
+                    route_list = []
+                    random.shuffle(locations_to_visit)  # Shuffle the locations
+                    for _ in range(num_routes):
+                        route = locations_to_visit[i::num_routes]
+                        route.insert(0, hub)
+                        route.append(hub)
+                        route_list.append(route)
+                    new_generation.append(RouteList(route_list))
+                    continue"""
+
                 # Choose parents for crossover
-                if random.random() < 0.4:  # 40% chance of choosing a good solution to evolve
-                    parent_1 = RouteList(RouteList.get_routes(random.choice(elite_pool)).copy())
+                if random.random() < 0.5:  # 50% chance of choosing a good solution to evolve
+                    parent_1 = random.choice(elite_pool)
                 else:
-                    parent_1 = RouteList(RouteList.get_routes(random.choice(best_route_lists_sorted)).copy())
-                parent_2 = RouteList(RouteList.get_routes(
-                    random.choice([routes for routes in best_route_lists_sorted if routes != parent_1])).copy())
+                    parent_1 = random.choice(best_route_lists_sorted)
+                parent_2 = random.choice(
+                    [routes for routes in best_route_lists_sorted if routes != parent_1])
 
                 # Make new RouteList to add to generation
-                offspring = RouteList(RouteList.get_routes(parent_1).copy())
-                if random.random() < 0.4:  # 40% chance of crossover
+                offspring = parent_1
+                if random.random() < 0.5:  # 50% chance of crossover
                     offspring = Optimizer.__crossover(parent_1, parent_2, hub)
-                    if random.random() < 0.4:
-                        offspring = Optimizer.__mutate(offspring)  # 40% chance of mutation assuming crossover
+                    if random.random() < 0.5:  # 50% chance of mutation with crossover
+                        mutated_offspring = Optimizer.__mutate(offspring)
+                        new_generation.append(mutated_offspring.copy())
+                        continue
                 else:
-                    offspring = Optimizer.__mutate(offspring)
+                    mutated_offspring = Optimizer.__mutate(offspring.copy())
+                    new_generation.append(mutated_offspring.copy())
+                    continue
 
                 # Add offspring to new generation
-                new_generation.append(offspring)
+                new_generation.append(offspring.copy())
+
+            # Update the current generation
+            current_generation = new_generation
 
             # Calculate fitness for each RouteList in the new generation
             fitness_scores = []
-            for route_set in new_generation:
-                route_fitness = Optimizer.__fitness(route_set, hub)
+            for route_list in current_generation:
+                route_fitness = Optimizer.__fitness(route_list, hub)
                 fitness_scores.append(route_fitness)
 
             # Print the fitness scores of the current generation
             print(f"Generation {total_generations - generations_left + 1} "
                   f"fitness scores: {sorted(fitness_scores, reverse=True)}")
 
-            # Update the current generation
-            current_generation = new_generation
             generations_left -= 1
 
         # Select the best RouteList from the final generation
@@ -163,6 +180,7 @@ class Optimizer:
           characteristics to be calculated first.)
 
         :param package_list: A list of Package objects to prioritize.
+        :param hub_location: The central location that the routes will be generated from and return to.
         :return: A list of scores for each package in the package_list. The scores are in the same order as the
                     package_list.
         """
@@ -192,15 +210,15 @@ class Optimizer:
                 for code in special_code:
                     if "BATCH" in code:
                         # Add a large number to the priority to ensure that batched packages are delivered together
-                        priority += 1000000
+                        priority += 1000
                         break
 
                 # Add very high priority if package has a special code and a deadline
                 if deadline != eod_time:
-                    priority += 1000000
+                    priority += 1000
 
             # Add to priority based on the distance to the HUB
-            priority += round(package.get_destination().distance_from(hub_location) * 10)
+            priority += round(package.get_destination().distance_from(hub_location) * 10000)
 
             priorities.append(priority)
 
@@ -232,7 +250,7 @@ class Optimizer:
         return priorities
 
     @staticmethod
-    def __fitness(route_set: RouteList, hub_location: Location) -> float:
+    def __fitness(route_set: RouteList, hub_location: Location) -> int:
         """
         Calculate the fitness of a route. The fitness of a route is scored based on numerous factors:
 
@@ -260,26 +278,26 @@ class Optimizer:
         avg_density = route_set.get_avg_locations_per_mile()
 
         # Apply weights to each factor
-        distance_weight = -2.0  # Negative because we want to minimize distance
-        max_route_length_weight = -0.1
-        med_route_length_weight = -5.0
-        max_deviation_weight = -5.0
-        avg_deviation_weight = -2.0
-        max_density_weight = 0.1
-        med_density_weight = 5.0
-        avg_density_weight = 1.0
+        distance_weight = -20  # Negative because we want to minimize distance
+        max_route_length_weight = -1
+        med_route_length_weight = -50
+        max_deviation_weight = -50
+        avg_deviation_weight = -20
+        max_density_weight = 1
+        med_density_weight = 50
+        avg_density_weight = 10
 
         # Calculate fitness
-        fitness = (total_distance * distance_weight +
-                   max_route_length * max_route_length_weight +
-                   med_route_length * med_route_length_weight +
-                   max_deviation * max_deviation_weight +
-                   avg_deviation * avg_deviation_weight +
-                   max_density * max_density_weight +
-                   med_density * med_density_weight +
-                   avg_density * avg_density_weight)
+        fitness = int(total_distance * distance_weight +
+                      max_route_length * max_route_length_weight +
+                      med_route_length * med_route_length_weight +
+                      max_deviation * max_deviation_weight +
+                      avg_deviation * avg_deviation_weight +
+                      max_density * max_density_weight +
+                      med_density * med_density_weight +
+                      avg_density * avg_density_weight)
 
-        return fitness
+        return fitness + 10000  # Add 10000 to ensure that the fitness is always positive
 
     @staticmethod
     def __select(routes: list[RouteList], fitness_scores: list[float]) -> list[RouteList]:
@@ -295,7 +313,7 @@ class Optimizer:
         sorted_routes = sorted(zip(routes, fitness_scores), key=lambda x: x[1], reverse=True)
 
         # Select the best half of the routes
-        best_routes = [route for route, _ in sorted_routes[:len(sorted_routes) // 2]]
+        best_routes = [route.copy() for route, _ in sorted_routes[:int(len(sorted_routes) * 0.7)]]
 
         return best_routes
 

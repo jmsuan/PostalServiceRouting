@@ -11,7 +11,19 @@ class RouteList:
 
         :param routes: A set of routes (i.e. a set of Location lists).
         """
-        self._route_set = routes
+        self._route_list = routes
+
+    def copy(self) -> RouteList:
+        """
+        :return: A deep copy of this RouteList (except Locations).
+        """
+        new_list: list[list[Location]] = []
+        for route in self._route_list:
+            new_route: list[Location] = []
+            for location in route:
+                new_route.append(location)
+            new_list.append(route.copy())
+        return RouteList(new_list)
 
     def mutate(self) -> RouteList:
         """
@@ -21,7 +33,7 @@ class RouteList:
         :return: A new RouteList that can be considered a child of this single parent RouteList.
         """
         # Save routes into an iterable list
-        new_list = self._route_set.copy()
+        new_list = self._route_list.copy()
         num_routes = len(new_list)
 
         # For each route
@@ -97,7 +109,7 @@ class RouteList:
             raise ValueError("Both RouteList instances must have the same set of Locations.")
 
         # Check if both RouteList instances have the same number of routes
-        if len(self._route_set) != len(other_parent._route_set):
+        if len(self._route_list) != len(other_parent._route_list):
             raise ValueError("Both RouteList instances must have the same number of routes.")
 
         # Define a function to calculate the location density of a route
@@ -131,7 +143,7 @@ class RouteList:
             return fitness
 
         # Create a list of all routes from both parents and calculate their location densities
-        all_routes = (self._route_set + other_parent._route_set).copy()
+        all_routes = (self._route_list + other_parent._route_list).copy()
         route_densities = [(route, route_fitness(route)) for route in all_routes]
 
         # Sort the list of routes in descending order of location density
@@ -146,7 +158,7 @@ class RouteList:
         # Iterate over the sorted list of routes
         for route, _ in route_densities:
             # Stop adding routes if offspring has same number of routes as parents
-            if len(offspring_routes) >= len(self._route_set):
+            if len(offspring_routes) >= len(self._route_list):
                 break
             # Create a new route that contains only the locations that are not already in the set of added locations
             new_route = [location for location in route if location not in added_locations and location != hub_location]
@@ -159,7 +171,7 @@ class RouteList:
 
         # If the number of offspring routes is less than the number of parent routes, add empty routes until they are
         # equal
-        while len(offspring_routes) < len(self._route_set):
+        while len(offspring_routes) < len(self._route_list):
             offspring_routes.append([hub_location, hub_location])
 
         # Iterate over all Locations from both parents
@@ -177,7 +189,7 @@ class RouteList:
         return offspring
 
     def get_routes(self) -> list[list[Location]]:
-        return self._route_set
+        return self._route_list
 
     def get_route_from_location(self, location: Location) -> list[Location]:
         """
@@ -186,7 +198,7 @@ class RouteList:
         """
         num_routes_found = 0
         route_found = None
-        for route in self._route_set:
+        for route in self._route_list:
             if location in route:
                 num_routes_found += 1
                 route_found = route
@@ -203,7 +215,7 @@ class RouteList:
             traversing.
         """
         found_locations = set()
-        for route in self._route_set:
+        for route in self._route_list:
             for location in route:
                 found_locations.add(location)
         return found_locations
@@ -214,7 +226,7 @@ class RouteList:
                  Truck.
         """
         distance = 0.0
-        for route in self._route_set:
+        for route in self._route_list:
             distance += RouteList.get_route_distance(route)
         return distance
 
@@ -223,7 +235,7 @@ class RouteList:
         :return: The number of Locations in the longest route that's part of the set.
         """
         max_length = -1
-        for route in self._route_set:
+        for route in self._route_list:
             if len(route) > max_length:
                 max_length = len(route)
         return max_length
@@ -234,7 +246,7 @@ class RouteList:
         """
         # Gather the location count of each route
         lengths = []
-        for route in self._route_set:
+        for route in self._route_list:
             lengths.append(len(route))
 
         return RouteList.__calculate_median(lengths)
@@ -248,7 +260,7 @@ class RouteList:
         :return: The largest route-petal width of all the given routes in the set.
         """
         max_deviance = -1.0
-        for route in self._route_set:
+        for route in self._route_list:
             deviance = RouteList.__get_route_deviance(route, hub_location)
             if deviance > max_deviance:
                 max_deviance = deviance
@@ -263,7 +275,7 @@ class RouteList:
         :return: The average route-petal width of all the given routes in the set.
         """
         deviance_list = []
-        for route in self._route_set:
+        for route in self._route_list:
             deviance = RouteList.__get_route_deviance(route, hub_location)
             deviance_list.append(deviance)
         return sum(deviance_list) / len(deviance_list)
@@ -274,7 +286,9 @@ class RouteList:
         :return: The Location density of the route (num_locations / route_distance).
         """
         max_density = 0.0
-        for route in self._route_set:
+        for route in self._route_list:
+            if RouteList.get_route_distance(route) == 0.0:
+                return 0.0
             location_density = len(route) / RouteList.get_route_distance(route)
             if location_density > max_density:
                 max_density = location_density
@@ -286,7 +300,10 @@ class RouteList:
         :return: The median Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self._route_set:
+        for route in self._route_list:
+            if RouteList.get_route_distance(route) == 0.0:
+                density_list.append(0.0)
+                continue
             location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
@@ -298,7 +315,10 @@ class RouteList:
         :return: The average Location density of the routes (num_locations / route_distance).
         """
         density_list = []
-        for route in self._route_set:
+        for route in self._route_list:
+            if RouteList.get_route_distance(route) == 0.0:
+                density_list.append(0.0)
+                continue
             location_density = len(route) / RouteList.get_route_distance(route)
             density_list.append(location_density)
 
