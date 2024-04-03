@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
+import heapq
 
 from driver import Driver
 from hash_table import HashTable
@@ -11,8 +12,15 @@ from route_list import RouteList
 
 class Scheduler:
     """
-    TODO: Apply Dijkstra's algorithm when we have to skip locations in a route.
+    The Scheduler class is responsible for scheduling the delivery of packages to their destinations. The Scheduler will
+    keep track of the current time, the packages that need to be delivered, the routes that the Trucks will take, the
+    Trucks that are available to deliver the packages, and the Drivers that will drive the Trucks. The Scheduler will
+    advance the current time by one minute and check the status of all packages and trucks to determine if any actions
+    need to be taken. If a package is ready to be delivered, the Scheduler will assign a Truck and Driver to deliver the
+    package. If a Truck has returned to the hub, the Scheduler will load the Truck and assign the Truck and Driver to a
+    new route.
     """
+    saved_invalid_packages = []
     initialized_time: datetime = None
     current_time: datetime = None
     delivery_start_time: datetime = None
@@ -64,6 +72,12 @@ class Scheduler:
         cls.drivers = driver_list
         cls.hub = hub_location
 
+        # Save any invalid packages to reset to invalid status
+        for package in cls.package_table.all_values():
+            if any("INVALID" in code for code in package.get_special_code()):
+                pkg_id = package.get_package_id()
+                cls.saved_invalid_packages.append((pkg_id, package.copy()))
+
         # Set the initial status of each package
         for package in cls.package_table.all_values():
             # Check if the special codes has "DELAY"
@@ -94,6 +108,13 @@ class Scheduler:
                         break
             else:
                 package.update_status("IN HUB")
+
+        # Reset the packages that were invalid
+        for pkg_id, saved_package in cls.saved_invalid_packages:
+            package_to_reset = cls.package_table.lookup_package(pkg_id)
+            package_to_reset.update_status("IN HUB")
+            package_to_reset.set_destination(saved_package.get_destination())
+            package_to_reset.make_invalid()
 
         # Reset the trucks
         for truck in cls.trucks:
@@ -381,18 +402,76 @@ class Scheduler:
             for i in range(1, len(route_copy) - 1):
                 # We are going through the route in regular order, weight priority by index (earlier is better)
                 dont_reverse_score += location_priorities.get(route_copy[i], 0) * (len(route_copy) - i)
-            for i in range(len(route_copy) - 1, 1, -1):
+            for i in range(len(route_copy) - 2, 1, -1):
                 # We are going through the route in reverse order, weight priority by index (earlier is better)
                 reverse_score += location_priorities.get(route_copy[i], 0) * (len(route_copy) - i)
             if reverse_score > dont_reverse_score:
                 route_copy = route_copy[::-1]
 
-        # Implement Dijkstra's algorithm to optimize the route ONLY if the truck has to skip a location on the route.
-        # TODO: Remove any unvisited locations from the route (only if we implement Dijkstra's algorithm)
+        # Implement Dijkstra's algorithm to optimize the route (if there's a better route to next location, take it)
+        all_locations = set(location for route in cls.route_list for location in route)
+        loc_to_insert_list: list[tuple[Location, list[Location]]] | list[None] = []
+        # Check every location pair
+        for loc, next_loc in zip(route_copy[:-1], route_copy[1:]):
+            initial_path = [loc, next_loc]
+            optimal_path = cls.dijkstra(all_locations, loc, next_loc)
+            if optimal_path != initial_path and optimal_path[1:-1]:
+                loc_to_insert_list.append((loc, optimal_path[1:-1]))
 
-        # TODO: Implement Dijkstra's algorithm here
+        # Insert the locations that need to be inserted from dijkstra's algorithm, accounting for the hub and multiple
+        # insertions per location
+        new_route = []
+        if loc_to_insert_list:
+            for loc in route_copy[:-1]:
+                new_route.append(loc)
+                if loc in [loc_to_insert for loc_to_insert, _ in loc_to_insert_list]:
+                    for loc_to_insert_after, list_to_insert in loc_to_insert_list:
+                        if loc == loc_to_insert_after:
+                            new_route.extend(list_to_insert)
+            new_route.append(route_copy[-1])
 
+        if new_route:
+            return new_route
         return route_copy
+
+    @staticmethod
+    def dijkstra(locations: set[Location], start: Location, end: Location) -> list[Location]:
+        """
+        Uses Dijkstra's algorithm to find the shortest path between two locations.
+
+        :return: The shortest path between the start and end locations. Includes the start and end locations. If there
+            is no path between the two locations, an empty list is returned.
+        """
+        # Initialize the shortest distances and paths
+        shortest_distances = {location: float('inf') for location in locations}
+        shortest_distances[start] = 0
+        shortest_paths = {location: [] for location in locations}
+        shortest_paths[start] = [start]
+
+        # Initialize the heap
+        heap = [(0.0, start)]
+
+        while heap:
+            # Pop the location with the smallest distance
+            (dist, current) = heapq.heappop(heap)
+
+            # If this is the end location, we have found the shortest path
+            if current == end:
+                return shortest_paths[end] + [end]
+
+            # Update the distances and paths to the neighbors
+            for neighbor, distance in current.neighbors().items():
+                new_dist = shortest_distances[current] + distance
+                if new_dist < shortest_distances[neighbor]:
+                    shortest_distances[neighbor] = new_dist
+                    shortest_paths[neighbor] = shortest_paths[current] + [neighbor]
+                    heapq.heappush(heap, (new_dist, neighbor))
+
+        # If there is no path from the start location to the end location, return an empty list
+        if end not in shortest_paths:
+            return []
+
+        return shortest_paths[end]
 
     @staticmethod
     def validate_time(time_str):

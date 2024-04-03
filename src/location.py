@@ -52,6 +52,12 @@ class Location:
         """
         return self._distance_table.get(location)
 
+    def neighbors(self) -> dict[Location, float]:
+        """
+        :return: A dictionary of all neighboring Locations and their distances from the current Location.
+        """
+        return self._distance_table
+
     def get_address(self) -> str:
         return self._address
 
@@ -68,6 +74,9 @@ class Location:
 
     def __repr__(self):
         return self.__str__()
+
+    def __lt__(self, other):
+        return self._name < other.get_name()
 
     @staticmethod
     def get_location_by_address(street_address: str, zip_code: str) -> Location:

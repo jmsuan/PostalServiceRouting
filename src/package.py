@@ -47,6 +47,19 @@ class Package:
         self._special_code = special_code
         self._status = status
 
+    def copy(self):
+        return Package(
+            self._package_id,
+            self._destination.get_address(),
+            self._city,
+            self._state,
+            self._destination.get_zip(),
+            self._deadline,
+            self._weight,
+            self._special_code,
+            self._status
+        )
+
     def update_status(self, new_status: str) -> None:
         """Updates the status of the package."""
         if any("INVALID" in code for code in self._special_code) and new_status != "IN HUB":
@@ -57,6 +70,11 @@ class Package:
     def make_valid(self) -> None:
         """Makes the package valid for delivery."""
         self._special_code = [code for code in self._special_code if code != "INVALID"]
+
+    def make_invalid(self) -> None:
+        """Makes the package invalid for delivery."""
+        if "INVALID" not in self._special_code:
+            self._special_code.append("INVALID")
 
     def get_package_id(self) -> int:
         return self._package_id

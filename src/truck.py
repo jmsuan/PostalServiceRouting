@@ -66,7 +66,7 @@ class Truck:
             if package.get_destination() == location:
                 self._packages.remove(package)
                 package.update_status(f"DELIVERED at {time_str}")
-                print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
+                # print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
                 package_delivered = True
         if package_delivered:
             return True
