@@ -186,10 +186,7 @@ class Scheduler:
         # Check if all trucks are at the hub (not necessary to check due to the requirements of the project)
         # all_trucks_at_hub = all(truck.is_at_hub() for truck in cls.trucks)
         if all_packages_delivered:  # Could check if all_trucks_at_hub here
-            try:
-                return False  # The day is over
-            finally:
-                cls.current_time += timedelta(minutes=1)
+            return False  # The day is over
 
         # Progress trucks towards their destination based on their speed if they are en route
         for truck in cls.trucks:

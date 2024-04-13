@@ -179,8 +179,7 @@ while u_input != "6":
         time_str = desired_time.strftime("%I:%M %p")  # Format the time for comparison
 
         # Run the Scheduler until the desired time is reached OR the end of the day
-        while Scheduler.get_current_time() != time_str:
-            Scheduler.tick()
+        while Scheduler.get_current_time() != time_str and Scheduler.tick():
             update_packages(Scheduler.get_current_time())
 
         # Get time after ticking to the desired time (redundant, but good to check)
@@ -195,7 +194,7 @@ while u_input != "6":
         print()
         Interface.print_package_table(
             pkg_table.values(pkg_ids),
-            f"Routing Status - Current Time: {time_end}",
+            f"Routing Status - Current Time: {time_str}",  # Use the desired time instead of the end of the day
             f"Total Mileage: {total_mileage:.2f} miles"
         )
         
