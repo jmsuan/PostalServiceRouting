@@ -545,3 +545,4 @@ class Interface:
                 route_names = [location.get_name() for location in route]
                 file_writer.writerow(route_names)
         print("Routes saved successfully!")
+        print("Please note that you must re-run the program to use these routes.")
