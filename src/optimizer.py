@@ -112,18 +112,6 @@ class Optimizer:
                     new_generation.append(elite_pool[i])
                     continue
 
-                """# Choose whether to make a shuffled RouteList
-                if random.random() < 0.4:  # 40% chance of making a shuffled RouteList
-                    route_list = []
-                    random.shuffle(locations_to_visit)  # Shuffle the locations
-                    for _ in range(num_routes):
-                        route = locations_to_visit[i::num_routes]
-                        route.insert(0, hub)
-                        route.append(hub)
-                        route_list.append(route)
-                    new_generation.append(RouteList(route_list))
-                    continue"""
-
                 # Choose parents for crossover
                 if random.random() < 0.5:  # 50% chance of choosing a good solution to evolve
                     parent_1 = random.choice(elite_pool)
