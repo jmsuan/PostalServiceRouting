@@ -468,7 +468,7 @@ class Interface:
 
             # Ask user for the number of generations to run the genetic algorithm
             num_generations = int(input("How many generations would you like to run the genetic algorithm for? ("
-                                        "100-10000) "))
+                                        "100-100000) "))
 
             # Ask user for the population size
             population_size = int(input("What would you like the population size to be for each generation? "
