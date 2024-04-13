@@ -3,6 +3,8 @@ A Solution to the Traveling Salesman Problem
 By Jonathan Lane
 ## Overview
 This project is an advanced solution to the Traveling Salesman Problem (TSP), or more closely, the Vehicle Routing Problem (VRP). It aims to optimize the delivery of parcels across a city, ensuring all packages are delivered within a specific timeframe and under a total distance constraint. Utilizing object-oriented programming principles and a genetic algorithm, the program results in efficient static route(s) that help the user manage the logistics of parcel delivery. After utilizing the genetic algorithm when creating routes, the program takes steps to further optimize the routes when they are reused for delivery. The self-adjusting genetic algorithm continually refines the static delivery route(s) based on a variety of metrics including distance, route density, and deviation from theoretically ideal routes.
+
+A pre-generated route is provided in `data/saved_routes.csv` (this was generated using the genetic algorithm using 1 route, 100000 generations, and 10000 population size). The program will automatically load this route, but there is an additional option, as well as a backup of the pre-generated route, in case you want to try generating a different list of routes. A graphic that visualizes the pre-generated routes is provided in the root directory and in `data/routes_backup`.
 ## Features
 - **Genetic Algorithm**: Utilizes mutation and crossover techniques to evolve route solutions generation by generation, aiming to minimize total travel distance while adhering to package constraints.
 - **Self-Adjusting Data Structures**: Incorporates `RouteList` and `Location` classes, enabling dynamic route management and address standardization to enhance route optimization.
