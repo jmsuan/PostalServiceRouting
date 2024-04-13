@@ -106,6 +106,9 @@ while u_input != "6":
 
     # 1. Print All Packages With Total Mileage
     if u_input == "1":
+        # Reset the day to have accurate info for the time entered
+        Scheduler.reset_day()
+
         # Run the Scheduler until the end of the day
         while Scheduler.get_current_time() != "11:59 PM" and Scheduler.tick():
             update_packages(Scheduler.get_current_time())
@@ -176,7 +179,8 @@ while u_input != "6":
         time_str = desired_time.strftime("%I:%M %p")  # Format the time for comparison
 
         # Run the Scheduler until the desired time is reached OR the end of the day
-        while Scheduler.get_current_time() != time_str and Scheduler.tick():
+        while Scheduler.get_current_time() != time_str:
+            Scheduler.tick()
             update_packages(Scheduler.get_current_time())
 
         # Get time after ticking to the desired time (redundant, but good to check)

@@ -21,6 +21,7 @@ class Scheduler:
     new route.
     """
     saved_invalid_packages = []
+    saved_delayed_packages = []
     initialized_time: datetime = None
     current_time: datetime = None
     delivery_start_time: datetime = None
@@ -84,9 +85,11 @@ class Scheduler:
             if any("DELAY[" in code for code in package.get_special_code()):
                 for code in package.get_special_code():
                     if "DELAY[" in code:
+                        pkg_id = package.get_package_id()
                         time_str = code.replace("DELAY[", "").replace("]", "")
                         time = datetime.strptime(time_str, "%H:%M:%S")
                         package.update_status(f"DELAYED UNTIL {time.strftime('%I:%M %p')}")
+                        cls.saved_delayed_packages.append((pkg_id, package.copy()))
                         break
             else:
                 package.update_status("IN HUB")
@@ -96,27 +99,7 @@ class Scheduler:
         """
         Resets the packages to its initial state.
         """
-        # Set the initial status of each package
-        for package in cls.package_table.all_values():
-            # Check if the special code has "DELAY"
-            if any("DELAY[" in code for code in package.get_special_code()):
-                for code in package.get_special_code():
-                    if "DELAY[" in code:
-                        time_str = code.replace("DELAY[", "").replace("]", "")
-                        time = datetime.strptime(time_str, "%H:%M:%S")
-                        package.update_status(f"DELAYED UNTIL {time.strftime('%I:%M %p')}")
-                        break
-            else:
-                package.update_status("IN HUB")
-
-        # Reset the packages that were invalid
-        for pkg_id, saved_package in cls.saved_invalid_packages:
-            package_to_reset = cls.package_table.lookup_package(pkg_id)
-            package_to_reset.update_status("IN HUB")
-            package_to_reset.set_destination(saved_package.get_destination())
-            package_to_reset.make_invalid()
-
-        # Reset the trucks
+        # Reset the trucks (we do this first because truck.reset_packages() will set loaded package status to "IN HUB")
         for truck in cls.trucks:
             truck.reset_packages()
             truck.reset_driver()
@@ -124,6 +107,22 @@ class Scheduler:
             truck.set_distance_to_next(0.0)
             truck.reset_odometer()
             truck.set_last_location(cls.hub)
+
+        # Reset the packages
+        for package in cls.package_table.all_values():
+            package.update_status("IN HUB")
+
+        # Reset the packages that were invalid
+        for pkg_id, saved_package in cls.saved_invalid_packages:
+            package_to_reset = cls.package_table.lookup(pkg_id)
+            package_to_reset.update_status("IN HUB")
+            package_to_reset.set_destination(saved_package.get_destination())
+            package_to_reset.make_invalid()
+
+        # Reset the packages that were delayed
+        for pkg_id, saved_package in cls.saved_delayed_packages:
+            package_to_reset = cls.package_table.lookup(pkg_id)
+            package_to_reset.update_status(saved_package.get_status())
 
         # Reset the current time to the initialized time
         cls.current_time = cls.initialized_time
@@ -165,6 +164,17 @@ class Scheduler:
         """
         # Check if it's before the delivery_start_time
         if cls.current_time < cls.delivery_start_time:
+            # Check for delayed packages and update their statuses if necessary
+            for package, _ in cls.prioritized_pkgs:
+                if any("DELAY[" in code for code in package.get_special_code()) and "DELAY" in package.get_status():
+                    for code in package.get_special_code():
+                        if "DELAY[" in code:
+                            time_str = code.replace("DELAY[", "").replace("]", "")
+                            time = datetime.strptime(time_str, "%H:%M:%S")
+                            if cls.current_time >= time:
+                                package.update_status("IN HUB")
+                            else:
+                                package.update_status(f"DELAYED UNTIL {time.strftime('%I:%M %p')}")
             cls.current_time += timedelta(minutes=1)
             return True  # It's before the delivery start time, loop again
 
@@ -176,7 +186,10 @@ class Scheduler:
         # Check if all trucks are at the hub (not necessary to check due to the requirements of the project)
         # all_trucks_at_hub = all(truck.is_at_hub() for truck in cls.trucks)
         if all_packages_delivered:  # Could check if all_trucks_at_hub here
-            return False  # The day is over
+            try:
+                return False  # The day is over
+            finally:
+                cls.current_time += timedelta(minutes=1)
 
         # Progress trucks towards their destination based on their speed if they are en route
         for truck in cls.trucks:
@@ -299,6 +312,8 @@ class Scheduler:
                         time = datetime.strptime(time_str, "%H:%M:%S")
                         if cls.current_time >= time:
                             package.update_status("IN HUB")
+                        else:
+                            package.update_status(f"DELAYED UNTIL {time.strftime('%I:%M %p')}")
 
         # Progress the current time by one minute
         cls.current_time += timedelta(minutes=1)
