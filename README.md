@@ -47,7 +47,7 @@ If you created a virtual environment, activate it with:
   ```
 ### 5. Run the Program
 ```bash
-python main.py
+python src/main.py
 ```
 ## Usage
 Follow the command-line prompts to interact with the program. You can view the status of all packages at specific times and the total mileage traveled by all trucks at the end of the day.
