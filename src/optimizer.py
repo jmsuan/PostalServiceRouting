@@ -65,7 +65,7 @@ class Optimizer:
         if num_routes < 1 or num_routes > 50:
             raise ValueError("num_routes must be 1 to 50")
         if total_generations < 100 or total_generations > 100000:
-            raise ValueError("total_generations must be at least 50 and less than 100000 to allow ample time to find a "
+            raise ValueError("total_generations must be at least 50 and at most 100000 to allow ample time to find a "
                              "good solution.")
         if population_size < 50 or population_size > 1000:
             raise ValueError("population_size must be at least 50 and less than 1000 to allow for a diverse "
