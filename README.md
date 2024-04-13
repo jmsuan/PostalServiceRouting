@@ -10,7 +10,7 @@ A pre-generated route is provided in `data/saved_routes.csv` (this was generated
 - **Self-Adjusting Data Structures**: Incorporates `RouteList` and `Location` classes, enabling dynamic route management and address standardization to enhance route optimization.
 - **Priority Scheduling Algorithm**: Prioritizes packages based on special delivery requirements and deadlines to ensure timely deliveries.
 - **Object-Oriented Data Handling**: Utilizes data from the provided WGUPS distance tables and package files, converting them into structured data classes that facilitate rapid and maintainable access and manipulation.
-- ""Pre-Generated Route Loading"": Allows the user to load a pre-generated route from a CSV file, providing a quick and efficient way to test the program without waiting for the genetic algorithm to generate a new route.
+- **Pre-Generated Route Loading**: Allows the user to load a pre-generated route from a CSV file, providing a quick and efficient way to test the program without waiting for the genetic algorithm to generate a new route.
   - A backup of the pre-generated route is also provided in `data/routes_backup` case the user wants to revert to the originally provided route.
 ## Assumptions
 - Each truck can carry a maximum of 16 packages, and the ID number of each package is unique.
