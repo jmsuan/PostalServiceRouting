@@ -214,10 +214,11 @@ class Interface:
                 print("│ ", end="")
                 for i in range(spaces_to_add):
                     print(" ", end="")
-                print(title, end="")
-                for i in range(spaces_to_add + odd_space):
-                    print(" ", end="")
-                print(" │")
+                    if i == spaces_to_add - 1:
+                        print(title, end="")
+                        for j in range(spaces_to_add + odd_space):
+                            print(" ", end="")
+                        print(" │")
 
         # Format top border with proper lengths
         print("├─", end="") if title else print("┌─", end="")
@@ -271,10 +272,11 @@ class Interface:
                 print("│ ", end="")
                 for i in range(spaces_to_add):
                     print(" ", end="")
-                print(footer, end="")
-                for i in range(spaces_to_add + odd_space):
-                    print(" ", end="")
-                print(" │")
+                    if i == spaces_to_add - 1:
+                        print(footer, end="")
+                        for j in range(spaces_to_add + odd_space):
+                            print(" ", end="")
+                        print(" │")
 
             # Print bottom border below title
             print("└─", end="")
