@@ -123,14 +123,14 @@ class Optimizer:
                 # Make new RouteList to add to generation
                 offspring = parent_1
                 if random.random() < 0.5:  # 50% chance of crossover
-                    offspring = Optimizer.__crossover(parent_1, parent_2, hub)
+                    offspring = Optimizer.__crossover(parent_1.copy(), parent_2.copy(), hub)
                     if random.random() < 0.5:  # 50% chance of mutation with crossover
-                        mutated_offspring = Optimizer.__mutate(offspring)
-                        new_generation.append(mutated_offspring.copy())
+                        mutated_offspring = Optimizer.__mutate(offspring.copy())
+                        new_generation.append(mutated_offspring)
                         continue
                 else:
                     mutated_offspring = Optimizer.__mutate(offspring.copy())
-                    new_generation.append(mutated_offspring.copy())
+                    new_generation.append(mutated_offspring)
                     continue
 
                 # Add offspring to new generation
