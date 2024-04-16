@@ -2,6 +2,9 @@ from driver import Driver
 from package import Package
 from location import Location
 from interface import Interface
+from datetime import datetime
+from datetime import timedelta
+from route_list import RouteList
 
 
 class Truck:
@@ -66,7 +69,7 @@ class Truck:
             if package.get_destination() == location:
                 self._packages.remove(package)
                 package.update_status(f"DELIVERED at {time_str}")
-                # print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
+                print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
                 package_delivered = True
         if package_delivered:
             return True
@@ -109,6 +112,19 @@ class Truck:
         if self._last_location == Interface.get_hub() and not self._route:
             return True
         return False
+
+    def get_eta(self, now: datetime) -> datetime | None:
+        """
+        :return: The estimated time that the Truck will finish its route, or None if the Truck has no route.
+        """
+        if not self._route:
+            return None
+        route = [self._last_location] + self._route
+        route_distance = RouteList.get_route_distance(route)
+        hours = route_distance / self._avg_speed
+        minutes = (hours - int(hours)) * 60
+        eta = now + timedelta(hours=int(hours), minutes=int(minutes))
+        return eta
 
     def get_id(self) -> int:
         return self._id

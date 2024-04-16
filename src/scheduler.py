@@ -199,6 +199,7 @@ class Scheduler:
                         truck.reset_route()
                         truck.reset_driver()
                         truck.reset_packages()
+                        print(f"Truck {truck.get_id()} has returned to the hub at {cls.get_current_time()}.")
 
         # Determine how many packages are in the hub that need to be delivered on particular a truck. Give a score to
         # each truck based on the number of packages that must be on that truck
@@ -225,12 +226,28 @@ class Scheduler:
             trucks_at_hub_scores = {truck_id: score for truck_id, score in truck_scores.items() if truck_id in
                                     [truck.get_id() for truck in trucks_at_hub]}
             highest_score_truck_id = max(trucks_at_hub_scores, key=trucks_at_hub_scores.get)
-            highest_score_truck = next(truck for truck in cls.trucks if truck.get_id() == highest_score_truck_id)
+            highest_score_truck = [truck for truck in cls.trucks if truck.get_id() == highest_score_truck_id
+                                   and truck.is_at_hub()][0]
 
             # Assign the first available driver to the highest score truck
-            first_available_driver = next(driver for driver in drivers_at_hub if driver not in
-                                          [truck.get_driver() for truck in cls.trucks])
+            first_available_driver = [driver for driver in drivers_at_hub if driver not in
+                                      [truck.get_driver() for truck in cls.trucks]][0]
             highest_score_truck.set_driver(first_available_driver)
+
+            # If it's within 15 minutes of a delayed package, wait for the delayed package
+            delayed_packages = [package for package in cls.package_table.all_values() if
+                                "DELAY" in package.get_status()]
+            if delayed_packages:
+                delayed_package_times = [package.get_delayed_time() for package in delayed_packages]
+                delayed_package_times = sorted(delayed_package_times)
+                if cls.current_time >= delayed_package_times[0] - timedelta(minutes=15):
+                    # Wait for the delayed package
+                    print(f"Truck {highest_score_truck.get_id()} is waiting for a delayed package at "
+                          f"{cls.current_time.strftime("%I:%M %p")}.")
+                    highest_score_truck.reset_route()
+                    highest_score_truck.reset_driver()
+                    highest_score_truck.reset_packages()
+                    break
 
             # Assign a score for each route the truck could take (using package priority)
             route_scores = []
@@ -243,17 +260,28 @@ class Scheduler:
             highest_score_route, _ = sorted(
                 zip(cls.route_list.copy(), route_scores), key=lambda x: x[1], reverse=True)[0]
 
-            # Load packages onto the truck if the package can be loaded onto this particular truck.
+            # Find all packages that need to be batched together
+            batched_packages_to_deliver = set()
+            for package, _ in cls.prioritized_pkgs:
+                for code in package.get_special_code():
+                    if "BATCH[" in code:
+                        pkg_list_str = code.replace("BATCH[", "").replace("]", "")
+                        pkg_ids = [int(id_num.strip()) for id_num in pkg_list_str.split(",")]
+                        for pkg_id in pkg_ids:
+                            pkg = cls.package_table.lookup_package(pkg_id)
+                            if pkg.get_status() == "IN HUB":
+                                batched_packages_to_deliver.add(pkg)
+
+            # Load packages if they are batched
             for package, _ in cls.prioritized_pkgs:
                 # Check is truck is at capacity
                 if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
                     break
 
-                # Load batched packages first (batched packages have a high priority)
-                if any("BATCH[" in code for code in package.get_special_code()):
-                    # Include the package itself
-                    if cls.__check_package_for_loading(package, highest_score_truck,
-                                                       [location for route in cls.route_list for location in route]):
+                if package in batched_packages_to_deliver:
+                    all_locations = list(set([location for route in cls.route_list for location in route]))
+                    # Include the package itself regardless of route
+                    if cls.__check_package_for_loading(package, highest_score_truck, all_locations):
                         highest_score_truck.load(package)
                     # Load the rest of the batched packages
                     for code in package.get_special_code():
@@ -263,31 +291,49 @@ class Scheduler:
                             for pkg_id in pkg_ids:
                                 pkg = cls.package_table.lookup_package(pkg_id)
                                 # Check if the package can be loaded onto the truck, regardless of the route
-                                if cls.__check_package_for_loading(pkg, highest_score_truck,
-                                                                   [location for route in cls.route_list
-                                                                    for location in route]):
+                                if cls.__check_package_for_loading(pkg, highest_score_truck, all_locations):
                                     highest_score_truck.load(pkg)
 
-                # Load package if priority is very high regardless of the route
-                for pkg, priority in cls.prioritized_pkgs:
-                    if (priority > 1000000
-                            and cls.__check_package_for_loading(pkg, highest_score_truck,
-                                                                [location for route in cls.route_list
-                                                                 for location in route])):
-                        highest_score_truck.load(pkg)
+            # Load packages if they have a deadline
+            for package, _ in cls.prioritized_pkgs:
+                # Skip batched packages
+                if package in batched_packages_to_deliver:
+                    continue
+
+                # Check is truck is at capacity
+                if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
+                    break
+
+                if package.get_deadline().strftime("%I:%M:%S %p") != "11:59:59 PM":
+                    all_locations = list(set([location for route in cls.route_list for location in route]))
+                    # Load the package regardless of route
+                    if cls.__check_package_for_loading(package, highest_score_truck, all_locations):
+                        highest_score_truck.load(package)
+
+            # Load packages onto the truck if the package can be loaded onto this particular truck.
+            for package, _ in cls.prioritized_pkgs:
+                # Skip batched packages
+                if package in batched_packages_to_deliver:
+                    continue
+
+                # Check is truck is at capacity
+                if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
+                    break
 
                 # Check if the package can be loaded onto the truck
                 if cls.__check_package_for_loading(package, highest_score_truck, highest_score_route):
                     highest_score_truck.load(package)
 
-            # If truck still has space, load the rest of the packages
-            for package, _ in cls.prioritized_pkgs:
-                if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
-                    break
-                if package not in highest_score_truck.get_packages() and package.get_status() == "IN HUB":
-                    if any("INVALID" in code for code in package.get_special_code()):
-                        continue
-                    highest_score_truck.load(package)
+            # Only load miscellaneous packages if there are no delayed packages we must wait for
+            if not delayed_packages:
+                # If truck still has space, load the rest of the packages
+                for package, _ in cls.prioritized_pkgs:
+                    if len(highest_score_truck.get_packages()) >= highest_score_truck.get_capacity():
+                        break
+                    if package not in highest_score_truck.get_packages() and package.get_status() == "IN HUB":
+                        if any("INVALID" in code for code in package.get_special_code()):
+                            continue
+                        highest_score_truck.load(package)
 
             # Optimize the route that the truck will take to deliver the packages in the most efficient manner
             optimized_route = cls.__optimize_route(highest_score_truck.get_packages(), highest_score_route)
@@ -295,6 +341,17 @@ class Scheduler:
                 if not highest_score_truck.get_route() and location == cls.hub:
                     continue  # Skip the hub if it's the first location
                 highest_score_truck.add_to_route(location)
+
+            """# Check if there are delayed packages in the hub
+            delayed_packages = [package for package in cls.package_table.all_values() if 
+                                "DELAY" in package.get_status()]
+            if delayed_packages:
+                # Unload packages on the truck to allow to return to the hub in time to pick up delayed packages
+                # Get the most delayed package time
+                last_delayed_package_time = max([package.get_deadline() for package in delayed_packages])
+                # Get the ETA for finishing the currently assigned route
+                eta = highest_score_truck.get_eta(cls.current_time)
+                if eta is not None:"""
 
             # Remove the chosen truck and driver from hub
             trucks_at_hub.remove(highest_score_truck)
@@ -420,31 +477,63 @@ class Scheduler:
             if reverse_score > dont_reverse_score:
                 route_copy = route_copy[::-1]
 
-        # Implement Dijkstra's algorithm to optimize the route (if there's a better route to next location, take it)
+        """# Bring outlier priority locations to the front of the route
+        if location_priorities:
+            median_priority = sorted(location_priorities.values())[len(location_priorities) // 2]
+            max_priority = max(location_priorities.values())
+            locations_to_bring_to_front = [location for location, priority in location_priorities.items()
+                                           if priority >= (max_priority + median_priority) // 2]
+            for location in locations_to_bring_to_front:
+                route_copy.remove(location)
+                route_copy.insert(1, location)"""
+
+        # If a package's deadline is within an hour, prioritize that location
+        for package in packages_to_deliver:
+            if package.get_deadline() - cls.current_time < timedelta(hours=1):
+                if package.get_destination() in route_copy:
+                    route_copy.remove(package.get_destination())
+                    route_copy.insert(1, package.get_destination())
+
         all_locations = set(location for route in cls.route_list for location in route)
-        loc_to_insert_list: list[tuple[Location, list[Location]]] | list[None] = []
-        # Check every location pair
-        for loc, next_loc in zip(route_copy[:-1], route_copy[1:]):
-            initial_path = [loc, next_loc]
-            optimal_path = cls.dijkstra(all_locations, loc, next_loc)
-            if optimal_path != initial_path and optimal_path[1:-1]:
-                loc_to_insert_list.append((loc, optimal_path[1:-1]))
+        new_route = cls.dijkstra_route(all_locations, route_copy)
 
-        # Insert the locations that need to be inserted from dijkstra's algorithm, accounting for the hub and multiple
-        # insertions per location
+        # Check if there are extra locations that can be removed
+        # (we may deliver to the same location multiple times due to dijkstra routing)
+        reversed_new_route = new_route[::-1]
+        for location in reversed_new_route.copy():
+            while reversed_new_route.count(location) > 1:
+                reversed_new_route.remove(location)  # Remove the last occurrence
+        new_route = reversed_new_route[::-1]
+
+        # Add the hub to the end of the route
+        new_route.append(cls.hub)
+
+        # Optimize the route again just in case the extra locations reduce total distance
+        optimized_route = cls.dijkstra_route(all_locations, new_route)
+
+        return optimized_route
+
+    @staticmethod
+    def dijkstra_route(locations: set[Location], route: list[Location]) -> list[Location]:
+        """
+        Optimizes the route that the truck will take to deliver the packages in the most efficient manner. The route
+        will be optimized to minimize the distance traveled by the truck. The route will be optimized using Dijkstra's
+        algorithm.
+
+        :param locations: The set of all locations that the truck can visit.
+        :param route: The route that the truck will take to deliver the packages.
+        :return: The optimized route that the truck can take to deliver the packages.
+        """
         new_route = []
-        if loc_to_insert_list:
-            for loc in route_copy[:-1]:
+        for loc, next_loc in zip(route[:-1], route[1:]):
+            initial_path = [loc, next_loc]
+            optimal_path = Scheduler.dijkstra(locations, loc, next_loc)
+            if optimal_path != initial_path and optimal_path[1:-1]:
+                new_route.extend(optimal_path[:-1])  # Add all locations except the last one
+            else:
                 new_route.append(loc)
-                if loc in [loc_to_insert for loc_to_insert, _ in loc_to_insert_list]:
-                    for loc_to_insert_after, list_to_insert in loc_to_insert_list:
-                        if loc == loc_to_insert_after:
-                            new_route.extend(list_to_insert)
-            new_route.append(route_copy[-1])
-
-        if new_route:
-            return new_route
-        return route_copy
+        new_route.append(route[-1])  # Add the last location
+        return new_route
 
     @staticmethod
     def dijkstra(locations: set[Location], start: Location, end: Location) -> list[Location]:

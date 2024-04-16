@@ -91,6 +91,12 @@ class Package:
     def get_deadline(self) -> datetime:
         return self._deadline
 
+    def get_delayed_time(self) -> datetime:
+        for code in self._special_code:
+            if "DELAY" in code:
+                return datetime.datetime.strptime(code[6:-1], "%H:%M:%S")
+        return None
+
     def get_city(self) -> str:
         return self._city
 

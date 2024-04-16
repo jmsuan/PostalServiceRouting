@@ -186,7 +186,7 @@ class Optimizer:
             time_left = eod_time - deadline
             seconds_left = int(time_left.total_seconds())
             minutes_left = seconds_left // 60  # "Minutes before EOD"
-            priority += round(minutes_left ** 1.4)
+            priority += round(minutes_left ** 2)
 
             # Add to priority based on special requirements
             special_code = package.get_special_code()
@@ -194,7 +194,9 @@ class Optimizer:
                 # If special_code is not None, it should be a list of strings.
                 assert isinstance(special_code, list) and all(isinstance(item, str) for item in special_code)
                 num_codes = len(special_code)
-                priority += num_codes * 50  # Add to priority proportional to how many special requirements there are
+                num_truck_codes = len([code for code in special_code if "TRUCK" in code])
+                # Add to priority proportional to how many special requirements there are
+                priority += (num_codes - num_truck_codes) * 50
                 # Check for batch codes
                 for code in special_code:
                     if "BATCH" in code:
@@ -207,7 +209,7 @@ class Optimizer:
                     priority += 1000
 
             # Add to priority based on the distance to the HUB
-            priority += round(package.get_destination().distance_from(hub_location) * 10000)
+            priority += round(package.get_destination().distance_from(hub_location) * -10000)
 
             priorities.append(priority)
 
