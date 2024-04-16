@@ -11,7 +11,7 @@ A pre-generated route is provided in `data/saved_routes.csv` (this was generated
 - **Priority Scheduling Algorithm**: Prioritizes packages based on special delivery requirements and deadlines to ensure timely deliveries.
 - **Object-Oriented Data Handling**: Utilizes data from the provided WGUPS distance tables and package files, converting them into structured data classes that facilitate rapid and maintainable access and manipulation.
 - **Pre-Generated Route Loading**: Allows the user to load a pre-generated route from a CSV file, providing a quick and efficient way to test the program without waiting for the genetic algorithm to generate a new route.
-  - A backup of the pre-generated route is also provided in `data/routes_backup` case the user wants to revert to the originally provided route.
+  - A backup of the pre-generated list of routes, and some alternative routes, is also provided in `data/routes_backup` case the user wants to revert to the originally provided route.
 ## Assumptions
 - Each truck can carry a maximum of 16 packages, and the ID number of each package is unique.
 - The trucks travel at an average speed of 18 miles per hour and have an infinite amount of gas with no need to stop.
@@ -54,7 +54,7 @@ If you created a virtual environment, activate it with:
 python src/main.py
 ```
 ## Usage
-Follow the command-line prompts to interact with the program. You can view the status of all packages at specific times and the total mileage traveled by all trucks at the end of the day. A pre-generated list of routes is provided in data/saved_routes.csv (this was generated using the genetic algorithm using 3 routes, 10000 generations, and 1000 population size). The program will automatically load this route, but there is an additional option, as well as a backup of the pre-generated route, in case you want to try generating a different list of routes.
+Follow the command-line prompts to interact with the program. You can view the status of all packages at specific times and the total mileage traveled by all trucks at the end of the day. A pre-generated list of routes is provided in `data/saved_routes.csv` (this was generated using the genetic algorithm using 3 routes, 10000 generations, and 1000 population size). The program will automatically load this route, but there are additional options, as well as a backup of the pre-generated list of routes, in `data/routes_backup` in case you want to try generating a different list of routes.
 ## Implementation Details
 - The genetic algorithm's effectiveness is augmented from the standard implementation by utilizing a semantic crossover method that enhances the diversity of route solutions while preventing convergence on sub-optimal routes.
 - The program is designed with maintainability in mind, utilizing object-oriented programming principles and detailed documentation to ensure ease of updates and customization.
