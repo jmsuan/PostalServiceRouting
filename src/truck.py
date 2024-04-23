@@ -68,7 +68,7 @@ class Truck:
         for package in self._packages:
             if package.get_destination() == location:
                 self._packages.remove(package)
-                package.update_status(f"DELIVERED at {time_str}")
+                package.update_status(f"DELIVERED at {time_str} by TRUCK {self.get_id()}")
                 print(f"Package {package.get_package_id()} delivered from Truck {self.get_id()}.")
                 package_delivered = True
         if package_delivered:
@@ -157,4 +157,3 @@ class Truck:
 
     def set_last_location(self, location: Location):
         self._last_location = location
-
