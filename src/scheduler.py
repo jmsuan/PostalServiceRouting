@@ -398,10 +398,12 @@ class Scheduler:
                 if "TRUCK[" in code:
                     truck_list_str = code.replace("TRUCK[", "").replace("]", "")
                     truck_ids_special_code = [int(id_num.strip()) for id_num in truck_list_str.split(",")]
-        pkg_allowed_on_truck = (
-                truck.get_id() in truck_ids_special_code or not truck_ids_special_code)
+        pkg_allowed_on_truck = (truck.get_id() in truck_ids_special_code or not truck_ids_special_code)
         if not pkg_allowed_on_truck:
             return False
+        if truck.get_id() in truck_ids_special_code:
+            # If the code matches, allow the package to be loaded
+            return True
 
         # Check if the package is not on the highest-score route
         if package.get_destination() not in route:
